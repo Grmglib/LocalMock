@@ -14,6 +14,21 @@
     <link rel="stylesheet" href="app.css">
 </head>
 <body class="app-shell">
+    <div id="update-banner" class="update-banner" hidden role="status" aria-live="polite">
+        <div class="update-banner-content">
+            <p id="update-banner-text" class="update-banner-text">Nova versão disponível.</p>
+            <div class="update-banner-actions">
+                <button id="update-apply-button" class="button button-primary button-small" type="button">Atualizar</button>
+                <button id="update-dismiss-button" class="button button-small" type="button" title="Dispensar por agora">Dispensar</button>
+            </div>
+        </div>
+    </div>
+    <div id="update-overlay" class="update-overlay" hidden aria-live="assertive">
+        <div class="update-overlay-card">
+            <p class="update-overlay-title">Atualizando…</p>
+            <p id="update-overlay-message" class="update-overlay-message">O serviço será reiniciado. Aguarde.</p>
+        </div>
+    </div>
     <header class="app-topbar">
         <div class="app-topbar-brand">
             <span class="app-topbar-eyebrow">Local Mock</span>
@@ -28,6 +43,10 @@
             <p id="topbar-page-subtitle" class="app-topbar-page-subtitle">Crie, teste e gerencie respostas mockadas por coleção ou sem coleção.</p>
         </div>
         <div class="app-topbar-actions">
+            <span id="app-version-label" class="app-version-label" title="Versão instalada" aria-label="Versão instalada">v…</span>
+            <button id="check-update-button" class="icon-button" type="button" title="Verificar se há nova versão" aria-label="Verificar se há nova versão">
+                <span class="icon-check-update" aria-hidden="true">↻</span>
+            </button>
             <button id="theme-toggle-button" class="icon-button" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
                 <span class="icon-theme" aria-hidden="true">◐</span>
             </button>

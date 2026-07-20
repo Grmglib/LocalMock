@@ -115,6 +115,75 @@ textarea.code-editor-input {
     min-height: 100vh;
 }
 
+.update-banner {
+    flex-shrink: 0;
+    background: var(--accent-muted);
+    border-bottom: 1px solid var(--border-strong);
+    padding: 8px 20px;
+}
+
+.update-banner[hidden] {
+    display: none !important;
+}
+
+.update-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.update-banner-text {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.update-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.update-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.update-overlay[hidden] {
+    display: none !important;
+}
+
+.update-overlay-card {
+    max-width: 360px;
+    padding: 24px 28px;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.update-overlay-title {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.update-overlay-message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
 .app-topbar {
     display: flex;
     align-items: center;
@@ -140,6 +209,21 @@ textarea.code-editor-input {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--accent);
+}
+
+.app-version-label {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-panel-elevated);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    user-select: text;
 }
 
 .app-nav {
@@ -994,6 +1078,16 @@ html[data-theme="light"] .code-editor-input--compact {
 .icon-button:hover {
     background: var(--accent-muted);
     color: var(--accent);
+}
+
+.icon-button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.icon-check-update {
+    font-size: 1.15rem;
+    line-height: 1;
 }
 
 .icon-button--compact {

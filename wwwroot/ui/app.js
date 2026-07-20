@@ -94,9 +94,22 @@
 
     const apiBaseUrl = new URL("../mock", window.location.href);
     const collectionsApiUrl = new URL("../mock/collections", window.location.href);
+    const versionApiUrl = new URL("../api/version", window.location.href);
+    const updateApiUrl = new URL("../api/update", window.location.href);
     const themeStorageKey = "localmock-theme";
     const activeCollectionStorageKey = "localmock-active-collection";
     const activeScreenStorageKey = "localmock-active-screen";
+    const updateDismissedVersionKey = "localmock-dismissed-update-version";
+    const updateCheckIntervalMs = 10 * 60 * 1000;
+
+    const updateBanner = document.getElementById("update-banner");
+    const updateBannerText = document.getElementById("update-banner-text");
+    const updateApplyButton = document.getElementById("update-apply-button");
+    const updateDismissButton = document.getElementById("update-dismiss-button");
+    const updateOverlay = document.getElementById("update-overlay");
+    const updateOverlayMessage = document.getElementById("update-overlay-message");
+    const checkUpdateButton = document.getElementById("check-update-button");
+    const appVersionLabel = document.getElementById("app-version-label");
 
     const state = {
         mocks: [],
@@ -2285,4 +2298,184 @@
         switchScreen("mocks");
     }
     loadCollections().then(loadMocks);
+    setupUpdateChecker();
+
+    function setupUpdateChecker() {
+        if (!updateBanner || !updateApplyButton || !updateDismissButton) {
+            return;
+        }
+
+        let latestKnownVersion = null;
+
+        async function checkForUpdates(options) {
+            const manual = Boolean(options && options.manual);
+
+            if (manual && checkUpdateButton) {
+                checkUpdateButton.disabled = true;
+            }
+
+            try {
+                const response = await fetch(versionApiUrl, {
+                    headers: { Accept: "application/json" },
+                    cache: "no-store"
+                });
+                if (!response.ok) {
+                    if (manual) {
+                        showToast("error", "Não foi possível verificar atualizações.");
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                const latestVersion = data.latestVersion || data.LatestVersion || null;
+                const currentVersion = data.currentVersion || data.CurrentVersion || "";
+                const updateAvailable = Boolean(data.updateAvailable ?? data.UpdateAvailable);
+                const checkError = data.error || data.Error || null;
+                latestKnownVersion = latestVersion;
+
+                if (appVersionLabel && currentVersion) {
+                    appVersionLabel.textContent = "v" + currentVersion;
+                    appVersionLabel.title = "Versão instalada: " + currentVersion;
+                }
+
+                if (!updateAvailable || !latestVersion) {
+                    updateBanner.hidden = true;
+                    if (manual) {
+                        if (checkError) {
+                            showToast("error", checkError);
+                        } else {
+                            showToast(
+                                "success",
+                                "Você já está na versão mais recente" +
+                                    (currentVersion ? " (" + currentVersion + ")" : "") +
+                                    "."
+                            );
+                        }
+                    }
+                    return;
+                }
+
+                if (!manual) {
+                    const dismissed = localStorage.getItem(updateDismissedVersionKey);
+                    if (dismissed === latestVersion) {
+                        updateBanner.hidden = true;
+                        return;
+                    }
+                } else {
+                    localStorage.removeItem(updateDismissedVersionKey);
+                }
+
+                updateBannerText.textContent =
+                    "Nova versão " + latestVersion + " disponível (atual: " + currentVersion + ").";
+                updateBanner.hidden = false;
+
+                if (manual) {
+                    showToast("success", "Nova versão " + latestVersion + " encontrada.");
+                }
+            } catch (_error) {
+                if (manual) {
+                    showToast("error", "Não foi possível verificar atualizações.");
+                }
+            } finally {
+                if (manual && checkUpdateButton) {
+                    checkUpdateButton.disabled = false;
+                }
+            }
+        }
+
+        function showUpdateOverlay(message) {
+            if (updateOverlayMessage) {
+                updateOverlayMessage.textContent = message;
+            }
+            if (updateOverlay) {
+                updateOverlay.hidden = false;
+            }
+        }
+
+        async function waitForServiceRestart() {
+            const startedAt = Date.now();
+            const maxWaitMs = 120000;
+            const pollMs = 2000;
+
+            await new Promise(function (resolve) { setTimeout(resolve, 4000); });
+
+            while (Date.now() - startedAt < maxWaitMs) {
+                try {
+                    const response = await fetch(versionApiUrl, {
+                        headers: { Accept: "application/json" },
+                        cache: "no-store"
+                    });
+                    if (response.ok) {
+                        return true;
+                    }
+                } catch (_error) {
+                    // Service still restarting.
+                }
+
+                await new Promise(function (resolve) { setTimeout(resolve, pollMs); });
+            }
+
+            return false;
+        }
+
+        async function applyUpdate() {
+            updateApplyButton.disabled = true;
+            showUpdateOverlay("Baixando e aplicando a nova versão. O serviço será reiniciado.");
+
+            try {
+                const response = await fetch(updateApiUrl, {
+                    method: "POST",
+                    headers: { Accept: "application/json" }
+                });
+                const data = await response.json().catch(function () { return {}; });
+
+                if (!response.ok && response.status !== 202) {
+                    updateOverlay.hidden = true;
+                    updateApplyButton.disabled = false;
+                    showToast("error", data.message || data.Message || "Não foi possível iniciar a atualização.");
+                    return;
+                }
+
+                showUpdateOverlay("Reiniciando o serviço… a página será recarregada automaticamente.");
+
+                const recovered = await waitForServiceRestart();
+                if (recovered) {
+                    window.location.reload();
+                    return;
+                }
+
+                updateOverlay.hidden = true;
+                updateApplyButton.disabled = false;
+                showToast("error", "A atualização foi iniciada, mas o serviço demorou para voltar. Recarregue a página manualmente.");
+            } catch (_error) {
+                showUpdateOverlay("Aguardando o serviço voltar…");
+                const recovered = await waitForServiceRestart();
+                if (recovered) {
+                    window.location.reload();
+                    return;
+                }
+
+                updateOverlay.hidden = true;
+                updateApplyButton.disabled = false;
+                showToast("error", "Falha ao acompanhar a atualização. Verifique o serviço e recarregue a página.");
+            }
+        }
+
+        updateApplyButton.addEventListener("click", applyUpdate);
+        updateDismissButton.addEventListener("click", function () {
+            if (latestKnownVersion) {
+                localStorage.setItem(updateDismissedVersionKey, latestKnownVersion);
+            }
+            updateBanner.hidden = true;
+        });
+
+        if (checkUpdateButton) {
+            checkUpdateButton.addEventListener("click", function () {
+                checkForUpdates({ manual: true });
+            });
+        }
+
+        checkForUpdates();
+        setInterval(checkForUpdates, updateCheckIntervalMs);
+    }
 })();

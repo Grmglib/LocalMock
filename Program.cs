@@ -1,5 +1,6 @@
 using LocalMock.Services;
 using LocalMock.Swagger;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
@@ -9,10 +10,48 @@ namespace LocalMock
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            var isWindowsService = WindowsServiceHelpers.IsWindowsService();
+            var contentRoot = isWindowsService
+                ? AppContext.BaseDirectory
+                : Directory.GetCurrentDirectory();
+
+            if (isWindowsService)
+            {
+                Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+            }
+
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                Args = args,
+                ContentRootPath = contentRoot
+            });
+
+            builder.Host.UseWindowsService();
+
+            if (isWindowsService)
+            {
+                var dataDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "LocalMock");
+                Directory.CreateDirectory(dataDirectory);
+
+                builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Mock:FilePath"] = Path.Combine(dataDirectory, "mocks.json")
+                });
+            }
 
             var port = builder.Configuration.GetValue<int>("LocalMock:Port", 5183);
             builder.WebHost.UseUrls($"http://localhost:{port}");
+
+            builder.Services.Configure<UpdateOptions>(
+                builder.Configuration.GetSection(UpdateOptions.SectionName));
+            builder.Services.AddHttpClient(nameof(GitHubReleaseService), client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(5);
+            });
+            builder.Services.AddSingleton<IGitHubReleaseService, GitHubReleaseService>();
+            builder.Services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
             builder.Services.AddScoped<IMockService, MockService>();
             builder.Services.AddScoped<ICollectionService, CollectionService>();
