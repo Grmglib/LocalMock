@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Local Mock</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-soft: #1f2937;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --primary: #38bdf8;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #020617, #0f172a 45%, #111827);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        main {
+            width: min(760px, 100%);
+            background: rgba(17, 24, 39, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: clamp(2rem, 4vw, 2.6rem);
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .actions a {
+            text-decoration: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .actions a:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+
+        .primary {
+            background: var(--primary);
+            color: #082f49;
+        }
+
+        .secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        ul {
+            margin: 24px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Local Mock</h1>
+        <p>
+            Interface para cadastrar, editar e remover mocks da API.
+        </p>
+
+        <div class="actions">
+            <a class="primary" href="ui/">Abrir interface web</a>
+            <a class="secondary" href="swagger/">Abrir Swagger</a>
+        </div>
+
+        <ul>
+            <li>A interface usa os endpoints existentes em <code>/mock</code>.</li>
+            <li>Os dados são persistidos no arquivo <code>mocks.json</code>.</li>
+            <li>Swagger segue disponível para testes manuais e documentação.</li>
+        </ul>
+    </main>
+</body>
+</html>
