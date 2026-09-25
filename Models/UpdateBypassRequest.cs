@@ -1,20 +1,20 @@
 namespace LocalMock.Models;
 
-/// <summary>Request para ativar ou desativar o bypass de um mock salvo.</summary>
+/// <summary>Request to enable or disable bypass for a saved mock.</summary>
 public class UpdateBypassRequest
 {
-    /// <summary>Identificador da coleção. Opcional para mocks sem coleção.</summary>
+    /// <summary>Collection identifier. Optional for standalone mocks.</summary>
     public string? Collection { get; set; }
 
-    /// <summary>Método HTTP do mock.</summary>
+    /// <summary>HTTP method of the mock.</summary>
     public string Method { get; set; } = "GET";
 
-    /// <summary>Path do endpoint mockado.</summary>
+    /// <summary>Path of the mocked endpoint.</summary>
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Indica se a chamada deve ser encaminhada para a URL de bypass.</summary>
+    /// <summary>Whether the call should be forwarded to the bypass URL.</summary>
     public bool BypassEnabled { get; set; }
 
-    /// <summary>URL absoluta que receberá a chamada quando o bypass estiver ativo.</summary>
+    /// <summary>Absolute URL that receives the call when bypass is enabled.</summary>
     public string? BypassUrl { get; set; }
 }

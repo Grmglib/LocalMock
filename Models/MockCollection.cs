@@ -1,11 +1,11 @@
 namespace LocalMock.Models;
 
-/// <summary>Coleção de mocks com URL de bypass para endpoints não configurados.</summary>
+/// <summary>Mock collection with a bypass URL for unconfigured endpoints.</summary>
 public class MockCollection
 {
-    /// <summary>Identificador da coleção (slug, ex.: parceiro).</summary>
+    /// <summary>Collection identifier (slug, e.g. partner).</summary>
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>URL base absoluta HTTP/HTTPS para encaminhamento quando não houver mock.</summary>
+    /// <summary>Absolute HTTP/HTTPS base URL used for forwarding when no mock matches.</summary>
     public string BypassUrl { get; set; } = string.Empty;
 }

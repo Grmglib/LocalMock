@@ -4,28 +4,19 @@ namespace LocalMock.Services;
 
 public class CollectionService : ICollectionService
 {
-    private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _hostEnvironment;
-    private readonly ILogger<CollectionService> _logger;
+    private readonly IMockStoreRepository _storeRepository;
 
-    public CollectionService(
-        IConfiguration configuration,
-        IHostEnvironment hostEnvironment,
-        ILogger<CollectionService> logger)
+    public CollectionService(IMockStoreRepository storeRepository)
     {
-        _configuration = configuration;
-        _hostEnvironment = hostEnvironment;
-        _logger = logger;
+        _storeRepository = storeRepository;
     }
 
     public Task<IReadOnlyList<MockCollection>> ListAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        lock (MockStorePersistence.FileLock)
-        {
-            var store = ReadStoreLocked();
-            return Task.FromResult<IReadOnlyList<MockCollection>>(store.Collections);
-        }
+        var list = _storeRepository.ExecuteLocked((store, _) =>
+            (IReadOnlyList<MockCollection>)store.Collections.ToList());
+        return Task.FromResult(list);
     }
 
     public Task<MockCollection?> GetAsync(string id, CancellationToken cancellationToken = default)
@@ -33,13 +24,11 @@ public class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
 
-        lock (MockStorePersistence.FileLock)
-        {
-            var store = ReadStoreLocked();
-            var collection = store.Collections.FirstOrDefault(item =>
-                string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(collection);
-        }
+        var collection = _storeRepository.ExecuteLocked((store, _) =>
+            store.Collections.FirstOrDefault(item =>
+                string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase)));
+
+        return Task.FromResult(collection);
     }
 
     public Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
@@ -47,12 +36,11 @@ public class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
 
-        lock (MockStorePersistence.FileLock)
-        {
-            var exists = ReadStoreLocked().Collections.Any(item =>
-                string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(exists);
-        }
+        var exists = _storeRepository.ExecuteLocked((store, _) =>
+            store.Collections.Any(item =>
+                string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase)));
+
+        return Task.FromResult(exists);
     }
 
     public Task<bool> CreateAsync(string id, string bypassUrl, CancellationToken cancellationToken = default)
@@ -61,12 +49,11 @@ public class CollectionService : ICollectionService
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
         var normalizedBypassUrl = MockStorePersistence.NormalizeBypassUrl(bypassUrl) ?? string.Empty;
 
-        lock (MockStorePersistence.FileLock)
+        var created = _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             if (store.Collections.Any(item => string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase)))
             {
-                return Task.FromResult(false);
+                return false;
             }
 
             store.Collections.Add(new MockCollection
@@ -75,10 +62,11 @@ public class CollectionService : ICollectionService
                 BypassUrl = normalizedBypassUrl
             });
 
-            WriteStoreLocked(store);
-        }
+            save();
+            return true;
+        });
 
-        return Task.FromResult(true);
+        return Task.FromResult(created);
     }
 
     public Task<bool> UpdateBypassAsync(string id, string bypassUrl, CancellationToken cancellationToken = default)
@@ -86,21 +74,21 @@ public class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
         var normalizedBypassUrl = MockStorePersistence.NormalizeBypassUrl(bypassUrl) ?? string.Empty;
-        var updated = false;
 
-        lock (MockStorePersistence.FileLock)
+        var updated = _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             var collection = store.Collections.FirstOrDefault(item =>
                 string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase));
 
-            if (collection != null)
+            if (collection == null)
             {
-                collection.BypassUrl = normalizedBypassUrl;
-                updated = true;
-                WriteStoreLocked(store);
+                return false;
             }
-        }
+
+            collection.BypassUrl = normalizedBypassUrl;
+            save();
+            return true;
+        });
 
         return Task.FromResult(updated);
     }
@@ -110,22 +98,22 @@ public class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
 
-        lock (MockStorePersistence.FileLock)
+        var result = _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             var removed = store.Collections.RemoveAll(item =>
                 string.Equals(item.Id, normalizedId, StringComparison.OrdinalIgnoreCase)) > 0;
 
             if (!removed)
             {
-                return Task.FromResult<(bool, string?)>((false, "Coleção não encontrada."));
+                return (false, "Collection not found.");
             }
 
             store.Mocks.RemoveAll(item => MockStorePersistence.MatchesCollection(item, normalizedId));
-            WriteStoreLocked(store);
+            save();
+            return (true, (string?)null);
+        });
 
-            return Task.FromResult<(bool, string?)>((true, null));
-        }
+        return Task.FromResult(result);
     }
 
     public Task<bool> HasMocksAsync(string id, CancellationToken cancellationToken = default)
@@ -133,16 +121,9 @@ public class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedId = MockStorePersistence.NormalizeCollectionId(id);
 
-        lock (MockStorePersistence.FileLock)
-        {
-            var hasMocks = ReadStoreLocked().Mocks.Any(item => MockStorePersistence.MatchesCollection(item, normalizedId));
-            return Task.FromResult(hasMocks);
-        }
+        var hasMocks = _storeRepository.ExecuteLocked((store, _) =>
+            store.Mocks.Any(item => MockStorePersistence.MatchesCollection(item, normalizedId)));
+
+        return Task.FromResult(hasMocks);
     }
-
-    private string GetFilePath() => MockStorePersistence.GetFilePath(_configuration, _hostEnvironment);
-
-    private MockStore ReadStoreLocked() => MockStorePersistence.ReadStore(GetFilePath(), _logger);
-
-    private void WriteStoreLocked(MockStore store) => MockStorePersistence.WriteStore(GetFilePath(), store);
 }

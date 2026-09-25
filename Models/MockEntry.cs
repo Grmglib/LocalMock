@@ -4,10 +4,10 @@ using System.ComponentModel;
 
 namespace LocalMock.Models;
 
-/// <summary>Entrada de mock armazenada com método, path, status e corpo da resposta.</summary>
+/// <summary>Stored mock entry with method, path, status, and response body.</summary>
 public class MockEntry
 {
-    /// <summary>Identificador da coleção. Vazio/null = mock sem coleção (rota /mock/{path}).</summary>
+    /// <summary>Collection identifier. Empty/null = standalone mock (route /mock/{path}).</summary>
     public string? Collection { get; set; }
 
     public string Method { get; set; } = string.Empty;
@@ -15,12 +15,12 @@ public class MockEntry
     public int StatusCode { get; set; } = 200;
     public int ResponseDelayMs { get; set; }
 
-    /// <summary>Content-Type da resposta mockada (ex.: application/json, application/x-www-form-urlencoded).</summary>
+    /// <summary>Content-Type of the mocked response (e.g. application/json, application/x-www-form-urlencoded).</summary>
     public string ResponseContentType { get; set; } = "application/json";
 
     public JToken? ResponseBody { get; set; }
 
-    /// <summary>Quando false em mock de coleção, a rota usa o bypass da coleção.</summary>
+    /// <summary>When false for a collection mock, the route uses the collection bypass.</summary>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
     [DefaultValue(true)]
     public bool Enabled { get; set; } = true;

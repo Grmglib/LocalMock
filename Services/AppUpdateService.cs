@@ -93,7 +93,7 @@ public sealed class AppUpdateService : IAppUpdateService
             {
                 CurrentVersion = current,
                 UpdateAvailable = false,
-                Error = "Não foi possível verificar atualizações no momento."
+                Error = "Unable to check for updates right now."
             };
         }
     }
@@ -106,7 +106,7 @@ public sealed class AppUpdateService : IAppUpdateService
             {
                 Started = false,
                 StatusCode = 409,
-                Message = "Uma atualização já está em andamento."
+                Message = "An update is already in progress."
             };
         }
 
@@ -118,7 +118,7 @@ public sealed class AppUpdateService : IAppUpdateService
                 {
                     Started = false,
                     StatusCode = 409,
-                    Message = "Uma atualização já está em andamento."
+                    Message = "An update is already in progress."
                 };
             }
 
@@ -130,7 +130,7 @@ public sealed class AppUpdateService : IAppUpdateService
                     Started = false,
                     StatusCode = 400,
                     Message = string.IsNullOrWhiteSpace(status.Error)
-                        ? "Nenhuma atualização disponível."
+                        ? "No update available."
                         : status.Error,
                     TargetVersion = status.LatestVersion
                 };
@@ -143,7 +143,7 @@ public sealed class AppUpdateService : IAppUpdateService
                 {
                     Started = false,
                     StatusCode = 404,
-                    Message = $"Asset '{_options.AssetName}' não encontrado no release mais recente."
+                    Message = $"Asset '{_options.AssetName}' was not found in the latest release."
                 };
             }
 
@@ -166,7 +166,7 @@ public sealed class AppUpdateService : IAppUpdateService
                 {
                     Started = false,
                     StatusCode = 500,
-                    Message = "Script apply-update.ps1 não encontrado na instalação."
+                    Message = "Script apply-update.ps1 was not found in the installation."
                 };
             }
 
@@ -181,7 +181,7 @@ public sealed class AppUpdateService : IAppUpdateService
             {
                 Started = true,
                 StatusCode = 202,
-                Message = "Atualização iniciada. O serviço será reiniciado em instantes.",
+                Message = "Update started. The service will restart shortly.",
                 TargetVersion = AppVersion.Normalize(release.TagName)
             };
         }
@@ -192,7 +192,7 @@ public sealed class AppUpdateService : IAppUpdateService
             {
                 Started = false,
                 StatusCode = 500,
-                Message = "Falha ao iniciar a atualização: " + ex.Message
+                Message = "Failed to start the update: " + ex.Message
             };
         }
         finally
@@ -266,7 +266,7 @@ public sealed class AppUpdateService : IAppUpdateService
         var process = Process.Start(startInfo);
         if (process == null)
         {
-            throw new InvalidOperationException("Não foi possível iniciar o helper de atualização.");
+            throw new InvalidOperationException("Unable to start the update helper.");
         }
     }
 }

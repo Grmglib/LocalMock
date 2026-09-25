@@ -2,36 +2,36 @@ using Newtonsoft.Json.Linq;
 
 namespace LocalMock.Models;
 
-/// <summary>Request para criação de um mock de endpoint.</summary>
+/// <summary>Request to create an endpoint mock.</summary>
 public class CreateMockRequest
 {
-    /// <summary>Identificador da coleção. Opcional para mocks sem coleção.</summary>
+    /// <summary>Collection identifier. Optional for standalone mocks.</summary>
     public string? Collection { get; set; }
 
-    /// <summary>Método HTTP (GET, POST, PUT, DELETE, PATCH).</summary>
+    /// <summary>HTTP method (GET, POST, PUT, DELETE, PATCH).</summary>
     public string Method { get; set; } = "GET";
 
-    /// <summary>Path do endpoint (ex.: /ConsultarCliente).</summary>
+    /// <summary>Endpoint path (e.g. /customers).</summary>
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Código de status HTTP da resposta.</summary>
+    /// <summary>HTTP status code of the response.</summary>
     public int StatusCode { get; set; } = 200;
 
-    /// <summary>Tempo de espera antes de retornar a resposta mockada, em milissegundos.</summary>
+    /// <summary>Delay before returning the mocked response, in milliseconds.</summary>
     public int ResponseDelayMs { get; set; }
 
-    /// <summary>Content-Type da resposta mockada.</summary>
+    /// <summary>Content-Type of the mocked response.</summary>
     public string? ResponseContentType { get; set; }
 
-    /// <summary>Corpo da resposta (objeto JSON, string form-urlencoded, texto, etc.).</summary>
+    /// <summary>Response body (JSON object, form-urlencoded string, plain text, etc.).</summary>
     public object? ResponseBody { get; set; }
 
-    /// <summary>Indica se o mock está ativo (coleções). Padrão: true.</summary>
+    /// <summary>Whether the mock is active (collections). Default: true.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Indica se a chamada deve ser encaminhada para uma URL externa.</summary>
+    /// <summary>Whether the call should be forwarded to an external URL.</summary>
     public bool BypassEnabled { get; set; }
 
-    /// <summary>URL absoluta que receberá a chamada quando o bypass estiver ativo.</summary>
+    /// <summary>Absolute URL that receives the call when bypass is enabled.</summary>
     public string? BypassUrl { get; set; }
 }

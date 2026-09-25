@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Local Mock — Gerenciador de Mocks</title>
+    <title>Local Mock — Mock Manager</title>
     <script>
         (function () {
             var savedTheme = localStorage.getItem("localmock-theme");
@@ -16,38 +16,38 @@
 <body class="app-shell">
     <div id="update-banner" class="update-banner" hidden role="status" aria-live="polite">
         <div class="update-banner-content">
-            <p id="update-banner-text" class="update-banner-text">Nova versão disponível.</p>
+            <p id="update-banner-text" class="update-banner-text">A new version is available.</p>
             <div class="update-banner-actions">
-                <button id="update-apply-button" class="button button-primary button-small" type="button">Atualizar</button>
-                <button id="update-dismiss-button" class="button button-small" type="button" title="Dispensar por agora">Dispensar</button>
+                <button id="update-apply-button" class="button button-primary button-small" type="button">Update</button>
+                <button id="update-dismiss-button" class="button button-small" type="button" title="Dismiss for now">Dismiss</button>
             </div>
         </div>
     </div>
     <div id="update-overlay" class="update-overlay" hidden aria-live="assertive">
         <div class="update-overlay-card">
-            <p class="update-overlay-title">Atualizando…</p>
-            <p id="update-overlay-message" class="update-overlay-message">O serviço será reiniciado. Aguarde.</p>
+            <p class="update-overlay-title">Updating…</p>
+            <p id="update-overlay-message" class="update-overlay-message">The service will restart. Please wait.</p>
         </div>
     </div>
     <header class="app-topbar">
         <div class="app-topbar-brand">
             <span class="app-topbar-eyebrow">Local Mock</span>
         </div>
-        <nav class="app-nav" role="tablist" aria-label="Telas do gerenciador">
+        <nav class="app-nav" role="tablist" aria-label="Manager screens">
             <button id="nav-mocks" class="app-nav-item is-active" type="button" role="tab" aria-selected="true" aria-controls="screen-mocks" data-screen="mocks">Mocks</button>
-            <button id="nav-collections" class="app-nav-item" type="button" role="tab" aria-selected="false" aria-controls="screen-collections" data-screen="collections">Coleções</button>
+            <button id="nav-collections" class="app-nav-item" type="button" role="tab" aria-selected="false" aria-controls="screen-collections" data-screen="collections">Collections</button>
         </nav>
         <div class="app-topbar-context">
             <p id="topbar-page-eyebrow" class="app-topbar-page-eyebrow">Mocks</p>
-            <h1 id="topbar-page-title" class="app-topbar-page-title">Configuração de endpoints</h1>
-            <p id="topbar-page-subtitle" class="app-topbar-page-subtitle">Crie, teste e gerencie respostas mockadas por coleção ou sem coleção.</p>
+            <h1 id="topbar-page-title" class="app-topbar-page-title">Endpoint configuration</h1>
+            <p id="topbar-page-subtitle" class="app-topbar-page-subtitle">Create, test, and manage mocked responses by collection or as standalone mocks.</p>
         </div>
         <div class="app-topbar-actions">
-            <span id="app-version-label" class="app-version-label" title="Versão instalada" aria-label="Versão instalada">v…</span>
-            <button id="check-update-button" class="icon-button" type="button" title="Verificar se há nova versão" aria-label="Verificar se há nova versão">
+            <span id="app-version-label" class="app-version-label" title="Installed version" aria-label="Installed version">v…</span>
+            <button id="check-update-button" class="icon-button" type="button" title="Check for a new version" aria-label="Check for a new version">
                 <span class="icon-check-update" aria-hidden="true">↻</span>
             </button>
-            <button id="theme-toggle-button" class="icon-button" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+            <button id="theme-toggle-button" class="icon-button" type="button" title="Toggle light/dark theme" aria-label="Toggle theme">
                 <span class="icon-theme" aria-hidden="true">◐</span>
             </button>
         </div>
@@ -58,31 +58,31 @@
             <aside class="mocks-sidebar" aria-labelledby="mocks-sidebar-title">
                 <div class="mocks-sidebar-header">
                     <div>
-                        <h2 id="mocks-sidebar-title" class="mocks-sidebar-title">Mocks cadastrados</h2>
-                        <p class="mocks-sidebar-subtitle">Selecione para editar ou testar</p>
+                        <h2 id="mocks-sidebar-title" class="mocks-sidebar-title">Registered mocks</h2>
+                        <p class="mocks-sidebar-subtitle">Select to edit or test</p>
                     </div>
-                    <button id="new-mock-button" class="button button-primary button-small" type="button" title="Novo mock">+</button>
+                    <button id="new-mock-button" class="button button-primary button-small" type="button" title="New mock">+</button>
                 </div>
 
                 <div class="collection-bar">
                     <label class="field field--compact collection-bar-field">
-                        <span class="field-label">Coleção ativa</span>
-                        <select id="collection-select" class="sidebar-filter" aria-label="Coleção ativa"></select>
+                        <span class="field-label">Active collection</span>
+                        <select id="collection-select" class="sidebar-filter" aria-label="Active collection"></select>
                     </label>
                 </div>
 
                 <div class="mocks-sidebar-toolbar">
-                    <input id="mock-search" type="search" class="sidebar-search" placeholder="Buscar path..." aria-label="Buscar mocks">
+                    <input id="mock-search" type="search" class="sidebar-search" placeholder="Search path..." aria-label="Search mocks">
                     <div class="sidebar-filters">
-                        <select id="filter-method" class="sidebar-filter" aria-label="Filtrar por método">
-                            <option value="">Método</option>
+                        <select id="filter-method" class="sidebar-filter" aria-label="Filter by method">
+                            <option value="">Method</option>
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
                             <option value="PUT">PUT</option>
                             <option value="PATCH">PATCH</option>
                             <option value="DELETE">DELETE</option>
                         </select>
-                        <select id="filter-status" class="sidebar-filter" aria-label="Filtrar por status">
+                        <select id="filter-status" class="sidebar-filter" aria-label="Filter by status">
                             <option value="">Status</option>
                             <option value="2xx">2xx</option>
                             <option value="3xx">3xx</option>
@@ -97,9 +97,9 @@
                 <p id="list-feedback" class="sidebar-feedback" aria-live="polite"></p>
 
                 <div class="mocks-sidebar-footer">
-                    <button id="import-mocks-button" class="button button-secondary button-small" type="button">Importar</button>
-                    <button id="export-mocks-button" class="button button-secondary button-small" type="button">Exportar</button>
-                    <button id="reload-button" class="button button-secondary button-small" type="button">Atualizar</button>
+                    <button id="import-mocks-button" class="button button-secondary button-small" type="button">Import</button>
+                    <button id="export-mocks-button" class="button button-secondary button-small" type="button">Export</button>
+                    <button id="reload-button" class="button button-secondary button-small" type="button">Refresh</button>
                 </div>
             </aside>
 
@@ -110,19 +110,19 @@
                             <header class="panel-head">
                                 <div class="panel-head-icon panel-head-icon--config" aria-hidden="true">⚙</div>
                                 <div>
-                                    <h2 id="config-panel-title" class="panel-title">Configurar mock</h2>
-                                    <p class="panel-subtitle">Defina o comportamento do endpoint mockado.</p>
+                                    <h2 id="config-panel-title" class="panel-title">Configure mock</h2>
+                                    <p class="panel-subtitle">Define the behavior of the mocked endpoint.</p>
                                 </div>
                                 <div class="panel-head-actions panel-head-actions--test">
-                                    <button class="button button-primary button-small" type="submit" form="mock-form">Salvar mock</button>
-                                    <button id="reset-form-button" class="button button-secondary button-small" type="button">Limpar</button>
+                                    <button class="button button-primary button-small" type="submit" form="mock-form">Save mock</button>
+                                    <button id="reset-form-button" class="button button-secondary button-small" type="button">Clear</button>
                                 </div>
                             </header>
 
                             <form id="mock-form" class="panel-body" novalidate>
                                 <div class="field-row field-row--method-status">
                                     <label class="field field--compact">
-                                        <span class="field-label">Método HTTP</span>
+                                        <span class="field-label">HTTP method</span>
                                         <select id="method" name="method" class="input-with-badge" required>
                                             <option value="GET">GET</option>
                                             <option value="POST">POST</option>
@@ -135,7 +135,7 @@
 
                                     <label class="field field--compact">
                                         <span class="field-label">Status code</span>
-                                        <input id="status-code" name="statusCode" type="text" inputmode="numeric" pattern="[0-9]*" list="status-code-suggestions" placeholder="Ex.: 200" autocomplete="off" required>
+                                        <input id="status-code" name="statusCode" type="text" inputmode="numeric" pattern="[0-9]*" list="status-code-suggestions" placeholder="e.g. 200" autocomplete="off" required>
                                         <datalist id="status-code-suggestions">
                                             <option value="200" label="OK"></option>
                                             <option value="201" label="Created"></option>
@@ -154,14 +154,14 @@
                                     </label>
 
                                     <label class="field field--compact">
-                                        <span class="field-label">Delay da resposta (ms)</span>
+                                        <span class="field-label">Response delay (ms)</span>
                                         <input id="response-delay-ms" name="responseDelayMs" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off">
                                     </label>
                                 </div>
 
                                 <label class="field field--highlight">
                                     <span class="field-label">Path</span>
-                                    <input id="path" name="path" type="text" class="input-path" placeholder="/ConsultarCliente" required>
+                                    <input id="path" name="path" type="text" class="input-path" placeholder="/customers" required>
                                 </label>
 
                                 <div class="field-group field-group--enabled">
@@ -171,8 +171,8 @@
                                             <span class="toggle-slider"></span>
                                         </label>
                                         <div>
-                                            <span class="toggle-label">Mock ativo</span>
-                                            <p class="field-hint">Inativo: a coleção usa bypass para este endpoint.</p>
+                                            <span class="toggle-label">Mock enabled</span>
+                                            <p class="field-hint">When disabled, the collection uses bypass for this endpoint.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -184,30 +184,30 @@
                                             <span class="toggle-slider"></span>
                                         </label>
                                         <div>
-                                            <span class="toggle-label">Ativar bypass</span>
-                                            <p class="field-hint">Sem coleção: encaminha para URL real quando ativo.</p>
+                                            <span class="toggle-label">Enable bypass</span>
+                                            <p class="field-hint">Standalone mocks: forwards to the real URL when enabled.</p>
                                         </div>
                                     </div>
 
                                     <label class="field" id="bypass-url-field">
-                                        <span class="field-label">URL de bypass</span>
-                                        <input id="bypass-url" name="bypassUrl" type="url" placeholder="https://api.exemplo.com/endpoint" autocomplete="off" disabled>
+                                        <span class="field-label">Bypass URL</span>
+                                        <input id="bypass-url" name="bypassUrl" type="url" placeholder="https://api.example.com/endpoint" autocomplete="off" disabled>
                                     </label>
                                 </div>
 
                                 <div class="endpoint-preview" id="config-endpoint-preview">
-                                    <span class="endpoint-preview-label">Preview do endpoint</span>
+                                    <span class="endpoint-preview-label">Endpoint preview</span>
                                     <div class="endpoint-preview-row">
                                         <span id="preview-method-badge" class="method-badge method-badge--get">GET</span>
                                         <code id="endpoint-preview" class="endpoint-preview-url">http://localhost:5000/mock/</code>
-                                        <button type="button" class="icon-button icon-button--copy" data-copy-target="endpoint-preview" title="Copiar URL" aria-label="Copiar URL do mock">
+                                        <button type="button" class="icon-button icon-button--copy" data-copy-target="endpoint-preview" title="Copy URL" aria-label="Copy mock URL">
                                             <span aria-hidden="true">⧉</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <label class="field field--compact">
-                                    <span class="field-label">Content-Type da resposta</span>
+                                    <span class="field-label">Response Content-Type</span>
                                     <select id="response-content-type" name="responseContentType">
                                         <option value="application/json">application/json</option>
                                         <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
@@ -216,19 +216,19 @@
                                 </label>
 
                                 <div class="field">
-                                    <span class="field-label">Corpo da resposta <span id="response-body-type-label" class="field-label-muted">(application/json)</span></span>
+                                    <span class="field-label">Response body <span id="response-body-type-label" class="field-label-muted">(application/json)</span></span>
                                     <div class="code-editor" data-editor="response">
                                         <div class="code-editor-gutter" id="response-body-gutter" aria-hidden="true">1</div>
                                         <textarea id="response-body" name="responseBody" class="code-editor-input" rows="7" spellcheck="false" placeholder='{
-  "sucesso": true
+  "success": true
 }' data-placeholder-json='{
-  "sucesso": true
-}' data-placeholder-form="sucesso=true&#10;codigo=1"></textarea>
+  "success": true
+}' data-placeholder-form="success=true&#10;code=1"></textarea>
                                     </div>
                                 </div>
 
                                 <p id="form-feedback" class="feedback" aria-live="polite"></p>
-                                <p id="form-title" class="sr-only">Novo mock</p>
+                                <p id="form-title" class="sr-only">New mock</p>
                             </form>
                         </section>
 
@@ -236,13 +236,13 @@
                             <header class="panel-head">
                                 <div class="panel-head-icon panel-head-icon--test" aria-hidden="true">▶</div>
                                 <div>
-                                    <h2 id="test-panel-title" class="panel-title">Testar chamada</h2>
-                                    <p class="panel-subtitle">Teste o endpoint mockado e visualize a resposta.</p>
+                                    <h2 id="test-panel-title" class="panel-title">Test request</h2>
+                                    <p class="panel-subtitle">Call the mocked endpoint and inspect the response.</p>
                                 </div>
                                 <div class="panel-head-actions">
-                                    <button id="run-test-button" class="button button-primary button-small" type="submit" form="test-form">Executar chamada</button>
-                                    <button id="reset-test-button" class="button button-secondary button-small" type="button">Limpar teste</button>
-                                    <button id="show-curl-import-button" class="icon-button icon-button--compact" type="button" title="Importar cURL" aria-label="Importar cURL">
+                                    <button id="run-test-button" class="button button-primary button-small" type="submit" form="test-form">Run request</button>
+                                    <button id="reset-test-button" class="button button-secondary button-small" type="button">Clear test</button>
+                                    <button id="show-curl-import-button" class="icon-button icon-button--compact" type="button" title="Import cURL" aria-label="Import cURL">
                                         <span aria-hidden="true">⇩</span>
                                     </button>
                                 </div>
@@ -251,7 +251,7 @@
                             <form id="test-form" class="panel-body" novalidate>
                                 <div class="field-row">
                                     <label class="field field--compact">
-                                        <span class="field-label">Método HTTP</span>
+                                        <span class="field-label">HTTP method</span>
                                         <select id="test-method" name="testMethod" required>
                                             <option value="GET">GET</option>
                                             <option value="POST">POST</option>
@@ -263,7 +263,7 @@
 
                                     <label class="field field--grow">
                                         <span class="field-label">Path</span>
-                                        <input id="test-path" name="testPath" type="text" placeholder="/ConsultarCliente" required>
+                                        <input id="test-path" name="testPath" type="text" placeholder="/customers" required>
                                     </label>
                                 </div>
 
@@ -279,12 +279,12 @@
                                 </label>
 
                                 <label class="field">
-                                    <span class="field-label">Headers da chamada</span>
+                                    <span class="field-label">Request headers</span>
                                     <textarea id="test-request-headers" class="code-editor-input code-editor-input--compact" name="testRequestHeaders" rows="3" spellcheck="false" placeholder="Authorization: Bearer token&#10;X-Correlation-Id: 123"></textarea>
                                 </label>
 
                                 <div class="field">
-                                    <span class="field-label">Corpo da requisição</span>
+                                    <span class="field-label">Request body</span>
                                     <div class="code-editor" data-editor="request">
                                         <div class="code-editor-gutter" id="test-request-body-gutter" aria-hidden="true">1</div>
                                         <textarea id="test-request-body" name="testRequestBody" class="code-editor-input" rows="5" spellcheck="false" placeholder='{
@@ -294,10 +294,10 @@
                                 </div>
 
                                 <div class="endpoint-preview">
-                                    <span class="field-label">URL da chamada</span>
+                                    <span class="field-label">Request URL</span>
                                     <div class="endpoint-preview-row">
                                         <code id="test-endpoint-preview" class="endpoint-preview-url">—</code>
-                                        <button type="button" class="icon-button icon-button--copy" data-copy-target="test-endpoint-preview" title="Copiar URL" aria-label="Copiar URL da chamada">
+                                        <button type="button" class="icon-button icon-button--copy" data-copy-target="test-endpoint-preview" title="Copy URL" aria-label="Copy request URL">
                                             <span aria-hidden="true">⧉</span>
                                         </button>
                                     </div>
@@ -316,20 +316,20 @@
                                             <strong id="test-response-content-type" class="stat-card-value">—</strong>
                                         </div>
                                         <div class="stat-card">
-                                            <span class="stat-card-label">Tempo de resposta</span>
+                                            <span class="stat-card-label">Response time</span>
                                             <strong id="test-response-time" class="stat-card-value">—</strong>
                                         </div>
                                     </div>
 
                                     <div id="response-empty-state" class="empty-state">
                                         <div class="empty-state-icon" aria-hidden="true">{ }</div>
-                                        <h3 class="empty-state-title">A resposta aparecerá aqui</h3>
-                                        <p class="empty-state-desc">Execute uma chamada para visualizar o retorno do mock.</p>
+                                        <h3 class="empty-state-title">The response will appear here</h3>
+                                        <p class="empty-state-desc">Run a request to view the mock response.</p>
                                     </div>
 
                                     <div id="response-error-state" class="empty-state empty-state--error" hidden>
                                         <div class="empty-state-icon" aria-hidden="true">!</div>
-                                        <h3 class="empty-state-title">Erro na chamada</h3>
+                                        <h3 class="empty-state-title">Request error</h3>
                                         <p id="response-error-message" class="empty-state-desc"></p>
                                     </div>
 
@@ -346,14 +346,14 @@
             <aside class="collections-sidebar" aria-labelledby="collections-sidebar-title">
                 <div class="mocks-sidebar-header">
                     <div>
-                        <h2 id="collections-sidebar-title" class="mocks-sidebar-title">Coleções</h2>
-                        <p class="mocks-sidebar-subtitle">Ambientes com bypass automático</p>
+                        <h2 id="collections-sidebar-title" class="mocks-sidebar-title">Collections</h2>
+                        <p class="mocks-sidebar-subtitle">Environments with automatic bypass</p>
                     </div>
-                    <button id="new-collection-sidebar-button" class="button button-primary button-small" type="button" title="Nova coleção">+</button>
+                    <button id="new-collection-sidebar-button" class="button button-primary button-small" type="button" title="New collection">+</button>
                 </div>
 
                 <div class="mocks-sidebar-toolbar">
-                    <input id="collection-search" type="search" class="sidebar-search" placeholder="Buscar coleção..." aria-label="Buscar coleções">
+                    <input id="collection-search" type="search" class="sidebar-search" placeholder="Search collection..." aria-label="Search collections">
                 </div>
 
                 <div id="collections-list" class="mock-list" role="list" aria-live="polite"></div>
@@ -361,7 +361,7 @@
                 <p id="collections-list-feedback" class="sidebar-feedback" aria-live="polite"></p>
 
                 <div class="mocks-sidebar-footer">
-                    <button id="reload-collections-button" class="button button-secondary button-small" type="button">Atualizar</button>
+                    <button id="reload-collections-button" class="button button-secondary button-small" type="button">Refresh</button>
                 </div>
             </aside>
 
@@ -369,41 +369,41 @@
                 <main class="workspace workspace--collections">
                     <div class="workspace-panels workspace-panels--single">
                         <section class="panel collection-config-panel" aria-labelledby="collection-config-title">
-                            <button id="reset-collection-form-button" class="button button-secondary button-small panel-clear-button" type="button">Limpar</button>
+                            <button id="reset-collection-form-button" class="button button-secondary button-small panel-clear-button" type="button">Clear</button>
                             <header class="panel-head">
                                 <div class="panel-head-icon panel-head-icon--config" aria-hidden="true">⊞</div>
                                 <div>
-                                    <h2 id="collection-config-title" class="panel-title">Detalhes da coleção</h2>
-                                    <p id="collection-config-subtitle" class="panel-subtitle">Selecione uma coleção na lista ou crie uma nova.</p>
+                                    <h2 id="collection-config-title" class="panel-title">Collection details</h2>
+                                    <p id="collection-config-subtitle" class="panel-subtitle">Select a collection from the list or create a new one.</p>
                                 </div>
                             </header>
 
                             <div class="panel-body">
                                 <form id="collection-form" novalidate>
                                     <label class="field field--highlight" id="collection-form-id-field">
-                                        <span class="field-label">Id da coleção</span>
-                                        <input id="collection-form-id" name="collectionId" type="text" placeholder="parceiro" autocomplete="off" pattern="[a-zA-Z0-9_-]+">
-                                        <span class="field-hint">Slug usado na URL: /mock/{id}/endpoint</span>
+                                        <span class="field-label">Collection id</span>
+                                        <input id="collection-form-id" name="collectionId" type="text" placeholder="partner" autocomplete="off" pattern="[a-zA-Z0-9_-]+">
+                                        <span class="field-hint">Slug used in the URL: /mock/{id}/endpoint</span>
                                     </label>
 
                                     <label class="field">
-                                        <span class="field-label">URL de bypass (base)</span>
-                                        <input id="collection-form-bypass-url" name="collectionBypassUrl" type="url" placeholder="https://api.exemplo.com" autocomplete="off">
-                                        <span class="field-hint">Requisições sem mock configurado são encaminhadas para esta URL.</span>
+                                        <span class="field-label">Bypass URL (base)</span>
+                                        <input id="collection-form-bypass-url" name="collectionBypassUrl" type="url" placeholder="https://api.example.com" autocomplete="off">
+                                        <span class="field-hint">Requests without a configured mock are forwarded to this URL.</span>
                                     </label>
 
                                     <div class="collection-stats">
                                         <div class="stat-card">
-                                            <span class="stat-card-label">Mocks na coleção</span>
+                                            <span class="stat-card-label">Mocks in collection</span>
                                             <strong id="collection-mock-count" class="stat-card-value">—</strong>
                                         </div>
                                     </div>
 
                                     <div class="endpoint-preview">
-                                        <span class="endpoint-preview-label">URL base da coleção</span>
+                                        <span class="endpoint-preview-label">Collection base URL</span>
                                         <div class="endpoint-preview-row">
                                             <code id="collection-url-preview" class="endpoint-preview-url">—</code>
-                                            <button type="button" class="icon-button icon-button--copy" data-copy-target="collection-url-preview" title="Copiar URL" aria-label="Copiar URL da coleção">
+                                            <button type="button" class="icon-button icon-button--copy" data-copy-target="collection-url-preview" title="Copy URL" aria-label="Copy collection URL">
                                                 <span aria-hidden="true">⧉</span>
                                             </button>
                                         </div>
@@ -411,9 +411,9 @@
 
                                     <div class="form-footer">
                                         <div class="form-footer-primary form-footer-primary--wrap">
-                                            <button id="save-collection-form-button" class="button button-primary button-large" type="submit">Salvar coleção</button>
-                                            <button id="open-collection-mocks-button" class="button button-secondary button-large" type="button" hidden>Gerenciar mocks</button>
-                                            <button id="delete-collection-form-button" class="button button-secondary button-large" type="button" hidden>Excluir coleção</button>
+                                            <button id="save-collection-form-button" class="button button-primary button-large" type="submit">Save collection</button>
+                                            <button id="open-collection-mocks-button" class="button button-secondary button-large" type="button" hidden>Manage mocks</button>
+                                            <button id="delete-collection-form-button" class="button button-secondary button-large" type="button" hidden>Delete collection</button>
                                         </div>
                                         <p id="collection-form-feedback" class="feedback" aria-live="polite"></p>
                                     </div>
@@ -425,15 +425,15 @@
                             <header class="panel-head">
                                 <div class="panel-head-icon panel-head-icon--test" aria-hidden="true">?</div>
                                 <div>
-                                    <h2 id="collection-help-title" class="panel-title">Como funciona</h2>
-                                    <p class="panel-subtitle">Fluxo de roteamento por coleção</p>
+                                    <h2 id="collection-help-title" class="panel-title">How it works</h2>
+                                    <p class="panel-subtitle">Collection routing flow</p>
                                 </div>
                             </header>
                             <div class="panel-body collection-help-body">
                                 <ol class="collection-help-steps">
-                                    <li>Crie uma coleção com id (ex.: <code>parceiro</code>) e URL de bypass.</li>
-                                    <li>Na tela <strong>Mocks</strong>, selecione a coleção e cadastre os endpoints mockados.</li>
-                                    <li>Chamadas em <code>/mock/parceiro/...</code> retornam o mock se existir; caso contrário, vão para o bypass.</li>
+                                    <li>Create a collection with an id (e.g. <code>partner</code>) and a bypass URL.</li>
+                                    <li>On the <strong>Mocks</strong> screen, select the collection and register the mocked endpoints.</li>
+                                    <li>Calls to <code>/mock/partner/...</code> return the mock when present; otherwise they go to the bypass.</li>
                                 </ol>
                             </div>
                         </section>
@@ -447,18 +447,18 @@
         <div class="modal-backdrop" data-close-modal></div>
         <div class="modal-content">
             <header class="modal-header">
-                <h2 id="curl-modal-title">Importar cURL</h2>
-                <button type="button" class="icon-button modal-close" data-close-modal aria-label="Fechar">×</button>
+                <h2 id="curl-modal-title">Import cURL</h2>
+                <button type="button" class="icon-button modal-close" data-close-modal aria-label="Close">×</button>
             </header>
             <div class="modal-body">
                 <label class="field">
-                    <span class="field-label">Cole o comando cURL</span>
-                    <textarea id="test-curl" name="testCurl" rows="8" spellcheck="false" placeholder="curl 'http://localhost:5000/mock/parceiro/ConsultarCliente' -H 'Authorization: Bearer token' -H 'Content-Type: application/json' --data '{&quot;id&quot;:1}'"></textarea>
+                    <span class="field-label">Paste the cURL command</span>
+                    <textarea id="test-curl" name="testCurl" rows="8" spellcheck="false" placeholder="curl 'http://localhost:5000/mock/partner/customers' -H 'Authorization: Bearer token' -H 'Content-Type: application/json' --data '{&quot;id&quot;:1}'"></textarea>
                 </label>
             </div>
             <footer class="modal-footer">
-                <button id="cancel-curl-import-button" class="button button-secondary" type="button">Cancelar</button>
-                <button id="import-curl-button" class="button button-primary" type="button">Aplicar cURL</button>
+                <button id="cancel-curl-import-button" class="button button-secondary" type="button">Cancel</button>
+                <button id="import-curl-button" class="button button-primary" type="button">Apply cURL</button>
             </footer>
         </div>
     </div>

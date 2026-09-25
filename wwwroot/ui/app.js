@@ -41,13 +41,13 @@
     const TOPBAR_PAGE_COPY = {
         mocks: {
             eyebrow: "Mocks",
-            title: "Configuração de endpoints",
-            subtitle: "Crie, teste e gerencie respostas mockadas por coleção ou sem coleção."
+            title: "Endpoint configuration",
+            subtitle: "Create, test, and manage mocked responses by collection or as standalone mocks."
         },
         collections: {
-            eyebrow: "Coleções",
-            title: "Configuração de coleções",
-            subtitle: "Defina o identificador e a URL de bypass. Endpoints sem mock na coleção serão encaminhados automaticamente."
+            eyebrow: "Collections",
+            title: "Collection configuration",
+            subtitle: "Set the identifier and bypass URL. Endpoints without a mock in the collection are forwarded automatically."
         }
     };
     const collectionsList = document.getElementById("collections-list");
@@ -147,8 +147,8 @@
     function applyTheme(theme) {
         const normalizedTheme = theme === "light" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", normalizedTheme);
-        themeToggleButton.setAttribute("title", normalizedTheme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro");
-        themeToggleButton.setAttribute("aria-label", normalizedTheme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro");
+        themeToggleButton.setAttribute("title", normalizedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+        themeToggleButton.setAttribute("aria-label", normalizedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
     }
 
     function toggleTheme() {
@@ -172,7 +172,7 @@
         return state.activeCollection || null;
     }
 
-    function isSemColecaoMode() {
+    function isStandaloneMode() {
         return !getActiveCollectionId();
     }
 
@@ -361,11 +361,11 @@
         }
 
         if (contentType === "application/x-www-form-urlencoded") {
-            responseBodyField.placeholder = responseBodyField.getAttribute("data-placeholder-form") || "campo=valor";
+            responseBodyField.placeholder = responseBodyField.getAttribute("data-placeholder-form") || "field=value";
             return;
         }
 
-        responseBodyField.placeholder = "Conteúdo da resposta";
+        responseBodyField.placeholder = "Response content";
     }
 
     function bindJsonEditor(textarea, gutter, options) {
@@ -494,10 +494,10 @@
         const bypassGroup = document.querySelector(".field-group--bypass");
         const enabledGroup = document.querySelector(".field-group--enabled");
         if (bypassGroup) {
-            bypassGroup.hidden = !isSemColecaoMode();
+            bypassGroup.hidden = !isStandaloneMode();
         }
         if (enabledGroup) {
-            enabledGroup.hidden = isSemColecaoMode();
+            enabledGroup.hidden = isStandaloneMode();
         }
     }
 
@@ -536,10 +536,10 @@
         const previous = collectionSelectField.value;
         collectionSelectField.innerHTML = "";
 
-        const semColecaoOption = document.createElement("option");
-        semColecaoOption.value = "";
-        semColecaoOption.textContent = "Sem coleção";
-        collectionSelectField.appendChild(semColecaoOption);
+        const standaloneOption = document.createElement("option");
+        standaloneOption.value = "";
+        standaloneOption.textContent = "No collection";
+        collectionSelectField.appendChild(standaloneOption);
 
         state.collections.forEach(function (collection) {
             const id = collection.id || collection.Id;
@@ -624,7 +624,7 @@
             renderCollectionSelect();
             renderCollectionsList();
         } catch (error) {
-            const message = "Erro ao carregar coleções: " + error.message;
+            const message = "Failed to load collections: " + error.message;
             setFeedback(listFeedback, "error", message, { silent: true });
             setFeedback(collectionsListFeedback, "error", message);
         }
@@ -680,7 +680,7 @@
         deleteCollectionFormButton.hidden = true;
         openCollectionMocksButton.hidden = true;
         collectionMockCount.textContent = "—";
-        collectionConfigSubtitle.textContent = "Preencha os dados para criar uma nova coleção.";
+        collectionConfigSubtitle.textContent = "Fill in the details to create a new collection.";
         updateCollectionUrlPreview();
         setFeedback(collectionFormFeedback, "", "");
         renderCollectionsList();
@@ -695,7 +695,7 @@
         collectionFormIdFieldWrapper.classList.add("is-disabled");
         collectionFormBypassUrlField.value = getCollectionBypassUrl(collection);
         collectionMockCount.textContent = String(countMocksForCollection(id));
-        collectionConfigSubtitle.textContent = "Editando coleção " + id + ".";
+        collectionConfigSubtitle.textContent = "Editing collection " + id + ".";
         deleteCollectionFormButton.hidden = false;
         openCollectionMocksButton.hidden = false;
         updateCollectionUrlPreview();
@@ -719,8 +719,8 @@
             const empty = document.createElement("div");
             empty.className = "mock-list-empty";
             empty.textContent = state.collections.length
-                ? "Nenhuma coleção corresponde à busca."
-                : "Nenhuma coleção cadastrada. Use + para criar.";
+                ? "No collections match the search."
+                : "No collections registered. Use + to create one.";
             collectionsList.appendChild(empty);
             return;
         }
@@ -776,13 +776,13 @@
         const bypassUrl = normalizeBypassUrl(collectionFormBypassUrlField.value);
 
         if (!id && state.collectionFormMode === "create") {
-            setFeedback(collectionFormFeedback, "error", "Informe o id da coleção.");
+            setFeedback(collectionFormFeedback, "error", "Enter the collection id.");
             collectionFormIdField.focus();
             return;
         }
 
         if (!isValidBypassUrl(bypassUrl)) {
-            setFeedback(collectionFormFeedback, "error", "Informe uma URL de bypass válida (HTTP/HTTPS).");
+            setFeedback(collectionFormFeedback, "error", "Enter a valid bypass URL (HTTP/HTTPS).");
             collectionFormBypassUrlField.focus();
             return;
         }
@@ -817,8 +817,8 @@
             if (state.collectionFormMode === "edit") {
                 fillCollectionForm({ id: id, bypassUrl: bypassUrl });
             }
-            setFeedback(collectionFormFeedback, "success", "Coleção salva.");
-            setFeedback(collectionsListFeedback, "success", "Coleção salva.", { silent: true });
+            setFeedback(collectionFormFeedback, "success", "Collection saved.");
+            setFeedback(collectionsListFeedback, "success", "Collection saved.", { silent: true });
         } catch (error) {
             setFeedback(collectionFormFeedback, "error", error.message);
         } finally {
@@ -833,8 +833,8 @@
         }
         const mockCount = countMocksForCollection(id);
         const confirmMessage = mockCount > 0
-            ? "Excluir a coleção " + id + " e os " + mockCount + " mock(s) associados? Esta ação não pode ser desfeita."
-            : "Excluir a coleção " + id + "? Esta ação não pode ser desfeita.";
+            ? "Delete collection " + id + " and its " + mockCount + " associated mock(s)? This action cannot be undone."
+            : "Delete collection " + id + "? This action cannot be undone.";
         if (!window.confirm(confirmMessage)) {
             return;
         }
@@ -857,8 +857,8 @@
                 collectionsListFeedback,
                 "success",
                 mockCount > 0
-                    ? "Coleção e " + mockCount + " mock(s) removidos."
-                    : "Coleção removida."
+                    ? "Collection and " + mockCount + " mock(s) removed."
+                    : "Collection removed."
             );
         } catch (error) {
             setFeedback(collectionFormFeedback, "error", error.message);
@@ -883,7 +883,7 @@
                 resolve(typeof reader.result === "string" ? reader.result : "");
             };
             reader.onerror = function () {
-                reject(reader.error || new Error("não foi possível ler o arquivo informado"));
+                reject(reader.error || new Error("could not read the selected file"));
             };
             reader.readAsText(file);
         });
@@ -904,7 +904,7 @@
         const copied = document.execCommand("copy");
         document.body.removeChild(helper);
         if (!copied) {
-            throw new Error("o navegador não permitiu copiar automaticamente");
+            throw new Error("the browser did not allow automatic copy");
         }
     }
 
@@ -915,7 +915,7 @@
         toast.className = "toast toast-" + type;
         title.className = "toast-title";
         content.className = "toast-message";
-        title.textContent = type === "success" ? "Sucesso" : "Falha";
+        title.textContent = type === "success" ? "Success" : "Failure";
         content.textContent = message;
         toast.appendChild(title);
         toast.appendChild(content);
@@ -974,18 +974,18 @@
             return;
         }
         if (contentType === "application/x-www-form-urlencoded") {
-            testRequestBodyField.placeholder = "clienteId=1\nnome=Maria";
+            testRequestBodyField.placeholder = "customerId=1\nname=Maria";
             return;
         }
         if (contentType === "multipart/form-data") {
-            testRequestBodyField.placeholder = "campo=valor";
+            testRequestBodyField.placeholder = "field=value";
             return;
         }
         if (contentType.indexOf("xml") >= 0) {
             testRequestBodyField.placeholder = "<request>\n  <id>1</id>\n</request>";
             return;
         }
-        testRequestBodyField.placeholder = "Conteúdo da chamada";
+        testRequestBodyField.placeholder = "Request body";
     }
 
     function openCurlModal() {
@@ -1040,7 +1040,7 @@
             current += "\\";
         }
         if (quote) {
-            throw new Error("o cURL possui aspas sem fechamento.");
+            throw new Error("the cURL has an unclosed quote.");
         }
         if (current) {
             tokens.push(current);
@@ -1058,7 +1058,7 @@
     function splitHeader(header) {
         const separatorIndex = header.indexOf(":");
         if (separatorIndex <= 0) {
-            throw new Error("header inválido no cURL: " + header);
+            throw new Error("invalid header in cURL: " + header);
         }
         return {
             name: header.slice(0, separatorIndex).trim(),
@@ -1164,7 +1164,7 @@
     function parseCurlCommand(command) {
         const tokens = tokenizeCurlCommand(normalizeCurlCommand(command));
         if (!tokens.length || tokens[0].toLowerCase() !== "curl") {
-            throw new Error("informe um comando iniciado com curl.");
+            throw new Error("enter a command that starts with curl.");
         }
 
         const parsed = {
@@ -1184,7 +1184,7 @@
             const nextToken = tokens[index + 1];
             const readValue = function (optionName) {
                 if (nextToken === undefined) {
-                    throw new Error("a opção " + optionName + " está sem valor.");
+                    throw new Error("option " + optionName + " has no value.");
                 }
                 index += 1;
                 return nextToken;
@@ -1297,7 +1297,7 @@
     function importCurlToTest() {
         const command = testCurlField.value.trim();
         if (!command) {
-            setFeedback(testFeedback, "error", "Cole um comando cURL para importar.");
+            setFeedback(testFeedback, "error", "Paste a cURL command to import.");
             testCurlField.focus();
             return;
         }
@@ -1305,9 +1305,9 @@
             const parsedCurl = parseCurlCommand(command);
             applyCurlToTestForm(parsedCurl);
             closeCurlModal();
-            setFeedback(testFeedback, "success", "cURL importado com sucesso.");
+            setFeedback(testFeedback, "success", "cURL imported successfully.");
         } catch (error) {
-            setFeedback(testFeedback, "error", "Erro ao importar cURL: " + error.message);
+            setFeedback(testFeedback, "error", "Failed to import cURL: " + error.message);
             testCurlField.focus();
         }
     }
@@ -1377,7 +1377,7 @@
 
     function copyCurrentFormToTest() {
         if (!pathField.value.trim()) {
-            setFeedback(testFeedback, "error", "Preencha o path antes de copiar para teste.");
+            setFeedback(testFeedback, "error", "Fill in the path before copying to the test panel.");
             pathField.focus();
             return;
         }
@@ -1405,7 +1405,7 @@
             updateGutter(responseBodyField, responseBodyGutter);
         }
         state.editingKey = null;
-        formTitle.textContent = "Novo mock";
+        formTitle.textContent = "New mock";
         setFeedback(formFeedback, "", "");
         setFormDirty(false);
         updateBypassFieldState();
@@ -1426,7 +1426,7 @@
         updateResponseBodyEditor();
         setResponseBodyFieldValue(responseBodyField, responseBodyGutter, entry);
         state.editingKey = toKey(methodField.value, normalizePath(pathField.value), getEntryCollection(entry));
-        formTitle.textContent = "Editando mock";
+        formTitle.textContent = "Editing mock";
         setFormDirty(false);
         updateBypassFieldState();
         updateEndpointPreview();
@@ -1494,8 +1494,8 @@
             const empty = document.createElement("div");
             empty.className = "mock-list-empty";
             empty.textContent = state.mocks.length
-                ? "Nenhum mock corresponde aos filtros."
-                : "Nenhum mock cadastrado. Use + para criar.";
+                ? "No mocks match the filters."
+                : "No mocks registered. Use + to create one.";
             mockList.appendChild(empty);
             return;
         }
@@ -1535,7 +1535,7 @@
             meta.innerHTML =
                 '<span class="status-badge ' + getStatusClass(code) + '">' + escapeHtml(getStatusLabel(code)) + "</span>" +
                 (bypassEnabled ? '<span class="bypass-pill bypass-pill--yes">Bypass</span>' : "") +
-                (!isSemColecaoMode() && !mockEnabled ? '<span class="bypass-pill bypass-pill--inactive">Inativo</span>' : "");
+                (!isStandaloneMode() && !mockEnabled ? '<span class="bypass-pill bypass-pill--inactive">Inactive</span>' : "");
 
             const actions = document.createElement("div");
             actions.className = "mock-list-item-actions";
@@ -1543,20 +1543,20 @@
                 event.stopPropagation();
             });
 
-            actions.appendChild(createActionButton("Testar", "▶", function () {
+            actions.appendChild(createActionButton("Test", "▶", function () {
                 populateTestForm(normalized);
                 runTestCall();
             }));
 
-            if (isSemColecaoMode()) {
-                const bypassLabel = bypassEnabled ? "Desativar bypass" : "Ativar bypass";
+            if (isStandaloneMode()) {
+                const bypassLabel = bypassEnabled ? "Disable bypass" : "Enable bypass";
                 const bypassBtn = createActionButton(bypassLabel, "⇄", function () {
                     toggleBypass(normalized);
                 });
                 bypassBtn.classList.toggle("is-bypass-on", bypassEnabled);
                 actions.appendChild(bypassBtn);
             } else {
-                const enabledLabel = mockEnabled ? "Desativar mock" : "Ativar mock";
+                const enabledLabel = mockEnabled ? "Disable mock" : "Enable mock";
                 const enabledBtn = createActionButton(enabledLabel, "◉", function () {
                     toggleMockEnabled(normalized);
                 });
@@ -1565,14 +1565,14 @@
                 actions.appendChild(enabledBtn);
             }
 
-            actions.appendChild(createActionButton("Editar", "✎", function () {
+            actions.appendChild(createActionButton("Edit", "✎", function () {
                 fillForm(normalized);
             }));
-            actions.appendChild(createActionButton("Duplicar", "⧉", function () {
+            actions.appendChild(createActionButton("Duplicate", "⧉", function () {
                 duplicateMock(normalized);
             }));
 
-            const deleteBtn = createActionButton("Excluir", "✕", function () {
+            const deleteBtn = createActionButton("Delete", "✕", function () {
                 deleteMock(normalized);
             });
             deleteBtn.classList.add("icon-button--danger");
@@ -1628,9 +1628,9 @@
         };
         fillForm(copy);
         state.editingKey = null;
-        formTitle.textContent = "Novo mock (duplicado)";
+        formTitle.textContent = "New mock (duplicate)";
         setFormDirty(true);
-        setFeedback(formFeedback, "success", "Mock duplicado. Ajuste o path e salve.");
+        setFeedback(formFeedback, "success", "Mock duplicated. Adjust the path and save.");
     }
 
     async function uploadMockEntry(entry) {
@@ -1674,11 +1674,11 @@
                 entries = parsed.Mocks || parsed.mocks;
                 collections = parsed.Collections || parsed.collections || [];
             } else {
-                throw new Error("o arquivo deve ser uma lista de mocks ou um objeto com Collections e Mocks");
+                throw new Error("the file must be a list of mocks or an object with Collections and Mocks");
             }
 
             if (!entries.length && !collections.length) {
-                throw new Error("o arquivo informado está vazio");
+                throw new Error("the selected file is empty");
             }
 
             for (let index = 0; index < collections.length; index += 1) {
@@ -1686,7 +1686,7 @@
                 const collectionId = (collection.id || collection.Id || "").trim();
                 const bypassUrl = collection.bypassUrl || collection.BypassUrl;
                 if (!collectionId) {
-                    throw new Error("coleção inválida na posição " + (index + 1));
+                    throw new Error("invalid collection at position " + (index + 1));
                 }
                 const createResponse = await fetch(collectionsApiUrl, {
                     method: "POST",
@@ -1702,7 +1702,7 @@
                 try {
                     return toFileEntry(item);
                 } catch (error) {
-                    throw new Error("mock inválido na posição " + (index + 1) + ": " + error.message);
+                    throw new Error("invalid mock at position " + (index + 1) + ": " + error.message);
                 }
             });
             for (const entry of normalizedEntries) {
@@ -1712,9 +1712,9 @@
             await loadCollections();
             await loadMocks();
             resetForm();
-            setFeedback(listFeedback, "success", normalizedEntries.length + " mock(s) importado(s).");
+            setFeedback(listFeedback, "success", normalizedEntries.length + " mock(s) imported.");
         } catch (error) {
-            setFeedback(listFeedback, "error", "Erro ao importar: " + error.message);
+            setFeedback(listFeedback, "error", "Import failed: " + error.message);
         } finally {
             importMocksButton.disabled = false;
         }
@@ -1732,9 +1732,9 @@
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(objectUrl);
-            setFeedback(listFeedback, "success", "Arquivo mocks.json exportado.");
+            setFeedback(listFeedback, "success", "mocks.json file exported.");
         } catch (error) {
-            setFeedback(listFeedback, "error", "Não foi possível exportar: " + error.message);
+            setFeedback(listFeedback, "error", "Unable to export: " + error.message);
         }
     }
 
@@ -1745,11 +1745,11 @@
             throw new Error(typeof data === "string" ? data : JSON.stringify(data));
         }
         const text = await response.text();
-        throw new Error(text || "A operação falhou.");
+        throw new Error(text || "The operation failed.");
     }
 
     function formatResponseText(text, contentType) {
-        if (!text) return "Sem conteúdo retornado.";
+        if (!text) return "No content returned.";
         const looksLikeJson = contentType.indexOf("application/json") >= 0 || /^[\[{]/.test(text.trim());
         if (!looksLikeJson) return text;
         try {
@@ -1768,15 +1768,15 @@
             if (!line) continue;
             const separatorIndex = line.indexOf(":");
             if (separatorIndex <= 0) {
-                throw new Error("header inválido na linha " + (index + 1) + ". Use Nome: Valor.");
+                throw new Error("invalid header on line " + (index + 1) + ". Use Name: Value.");
             }
             const name = line.slice(0, separatorIndex).trim();
             const value = line.slice(separatorIndex + 1).trim();
             if (!name || !value) {
-                throw new Error("header inválido na linha " + (index + 1) + ".");
+                throw new Error("invalid header on line " + (index + 1) + ".");
             }
             if (blockedHeaders.indexOf(name.toLowerCase()) >= 0) {
-                throw new Error("o header " + name + " é controlado automaticamente.");
+                throw new Error("the " + name + " header is controlled automatically.");
             }
             headers[name] = value;
         }
@@ -1791,7 +1791,7 @@
             const line = lines[index].trim();
             const separatorIndex = line.indexOf("=");
             if (separatorIndex <= 0) {
-                throw new Error("linha " + (index + 1) + " inválida para " + contentType + ".");
+                throw new Error("invalid line " + (index + 1) + " for " + contentType + ".");
             }
             entries.push([line.slice(0, separatorIndex).trim(), line.slice(separatorIndex + 1)]);
         }
@@ -1840,7 +1840,7 @@
             renderMockList();
         } catch (error) {
             renderMockList();
-            setFeedback(listFeedback, "error", "Erro ao carregar mocks: " + error.message);
+            setFeedback(listFeedback, "error", "Failed to load mocks: " + error.message);
         } finally {
             reloadButton.disabled = false;
         }
@@ -1857,13 +1857,13 @@
         const requestBodyText = testRequestBodyField.value.trim();
 
         if (!testPathField.value.trim()) {
-            setFeedback(testFeedback, "error", "Informe o path que será chamado.");
+            setFeedback(testFeedback, "error", "Enter the path to call.");
             testPathField.focus();
             return;
         }
 
         if (method === "GET" && requestBodyText) {
-            setFeedback(testFeedback, "error", "Chamadas GET não devem enviar corpo.");
+            setFeedback(testFeedback, "error", "GET requests must not include a body.");
             testRequestBodyField.focus();
             return;
         }
@@ -1873,7 +1873,7 @@
             try {
                 requestBody = buildRequestBody(requestBodyText, contentType);
             } catch (error) {
-                setFeedback(testFeedback, "error", "Corpo inválido: " + error.message);
+                setFeedback(testFeedback, "error", "Invalid body: " + error.message);
                 return;
             }
         }
@@ -1907,7 +1907,7 @@
         try {
             const response = await fetch(requestUrl, fetchOptions);
             const elapsed = Math.round(performance.now() - startTime);
-            const respContentType = response.headers.get("content-type") || "não informado";
+            const respContentType = response.headers.get("content-type") || "not specified";
             const responseText = await response.text();
 
             testResponseStatus.textContent = response.status + " " + response.statusText;
@@ -1918,18 +1918,18 @@
             showResponseBody(formatResponseText(responseText, respContentType));
 
             if (response.ok) {
-                setFeedback(testFeedback, "success", "Chamada concluída em " + elapsed + " ms.", { silent: true });
+                setFeedback(testFeedback, "success", "Request completed in " + elapsed + " ms.", { silent: true });
             } else {
-                setFeedback(testFeedback, "error", "A chamada retornou " + response.status + ".", { silent: true });
+                setFeedback(testFeedback, "error", "The request returned " + response.status + ".", { silent: true });
             }
         } catch (error) {
             const elapsed = Math.round(performance.now() - startTime);
-            testResponseStatus.textContent = "Falha";
+            testResponseStatus.textContent = "Failed";
             testResponseContentType.textContent = "—";
             testResponseTime.textContent = elapsed + " ms";
             testResponseStatus.className = "stat-card-value is-error";
             showResponseError(error.message);
-            setFeedback(testFeedback, "error", "Erro ao executar: " + error.message, { silent: true });
+            setFeedback(testFeedback, "error", "Execution failed: " + error.message, { silent: true });
         } finally {
             runTestButton.disabled = false;
         }
@@ -1946,37 +1946,37 @@
         const bypassUrl = normalizeBypassUrl(bypassUrlField.value);
 
         if (!pathField.value.trim()) {
-            setFeedback(formFeedback, "error", "Informe o path do endpoint.");
+            setFeedback(formFeedback, "error", "Enter the endpoint path.");
             pathField.focus();
             return;
         }
 
         const activeCollection = getActiveCollectionId();
-        if (!isSemColecaoMode() && !activeCollection) {
-            setFeedback(formFeedback, "error", "Selecione ou crie uma coleção antes de salvar o mock.");
+        if (!isStandaloneMode() && !activeCollection) {
+            setFeedback(formFeedback, "error", "Select or create a collection before saving the mock.");
             return;
         }
 
         if (bypassEnabled && !isValidBypassUrl(bypassUrl)) {
-            setFeedback(formFeedback, "error", "Informe uma URL de bypass válida (HTTP/HTTPS).");
+            setFeedback(formFeedback, "error", "Enter a valid bypass URL (HTTP/HTTPS).");
             bypassUrlField.focus();
             return;
         }
 
         if (statusCode === null) {
-            setFeedback(formFeedback, "error", "Informe o status code.");
+            setFeedback(formFeedback, "error", "Enter the status code.");
             statusCodeField.focus();
             return;
         }
 
         if (Number.isNaN(statusCode)) {
-            setFeedback(formFeedback, "error", "Informe um status code válido entre 100 e 599.");
+            setFeedback(formFeedback, "error", "Enter a valid status code between 100 and 599.");
             statusCodeField.focus();
             return;
         }
 
         if (Number.isNaN(responseDelayMs)) {
-            setFeedback(formFeedback, "error", "Informe um delay válido em milissegundos, maior ou igual a zero.");
+            setFeedback(formFeedback, "error", "Enter a valid delay in milliseconds, greater than or equal to zero.");
             responseDelayMsField.focus();
             return;
         }
@@ -1990,8 +1990,8 @@
                 responseBody = parseResponseBodyForSave(responseBodyText, responseContentType);
             } catch (error) {
                 const message = responseContentType === "application/json"
-                    ? "O corpo JSON está inválido: " + error.message
-                    : "O corpo form-urlencoded está inválido: " + error.message;
+                    ? "The JSON body is invalid: " + error.message
+                    : "The form-urlencoded body is invalid: " + error.message;
                 setFeedback(formFeedback, "error", message);
                 responseBodyField.focus();
                 return;
@@ -2005,7 +2005,7 @@
             responseDelayMs: responseDelayMs,
             responseContentType: responseContentType,
             responseBody: responseBody,
-            enabled: isSemColecaoMode() ? true : mockEnabledField.checked,
+            enabled: isStandaloneMode() ? true : mockEnabledField.checked,
             bypassEnabled: bypassEnabled,
             bypassUrl: bypassUrl
         };
@@ -2032,12 +2032,12 @@
 
             state.editingKey = toKey(method, path, activeCollection);
             markMockUpdated(method, path);
-            setFeedback(formFeedback, "success", "Mock salvo com sucesso.");
+            setFeedback(formFeedback, "success", "Mock saved successfully.");
             setFormDirty(false);
             await loadMocks();
             fillForm(Object.assign({}, payload, { collection: activeCollection }));
         } catch (error) {
-            setFeedback(formFeedback, "error", "Erro ao salvar: " + error.message);
+            setFeedback(formFeedback, "error", "Failed to save: " + error.message);
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
@@ -2048,7 +2048,7 @@
     async function toggleMockEnabled(entry) {
         const collection = getEntryCollection(entry);
         if (!collection) {
-            setFeedback(listFeedback, "error", "Ativação/desativação só se aplica a mocks de coleção.");
+            setFeedback(listFeedback, "error", "Enable/disable only applies to collection mocks.");
             return;
         }
 
@@ -2079,7 +2079,7 @@
             setFeedback(
                 listFeedback,
                 "success",
-                nextEnabled ? "Mock ativado." : "Mock desativado (bypass da coleção).",
+                nextEnabled ? "Mock enabled." : "Mock disabled (collection bypass).",
                 { silent: true }
             );
 
@@ -2087,7 +2087,7 @@
                 mockEnabledField.checked = nextEnabled;
             }
         } catch (error) {
-            setFeedback(listFeedback, "error", "Erro ao atualizar mock: " + error.message);
+            setFeedback(listFeedback, "error", "Failed to update mock: " + error.message);
         }
     }
 
@@ -2098,7 +2098,7 @@
 
         if (nextEnabled && !isValidBypassUrl(bypassUrl)) {
             fillForm(entry);
-            setFeedback(formFeedback, "error", "Defina uma URL de bypass válida antes de ativar.");
+            setFeedback(formFeedback, "error", "Set a valid bypass URL before enabling.");
             bypassUrlField.focus();
             return;
         }
@@ -2129,7 +2129,7 @@
             setFeedback(
                 listFeedback,
                 "success",
-                nextEnabled ? "Bypass ativado." : "Bypass desativado.",
+                nextEnabled ? "Bypass enabled." : "Bypass disabled.",
                 { silent: true }
             );
 
@@ -2138,12 +2138,12 @@
                 updateBypassFieldState();
             }
         } catch (error) {
-            setFeedback(listFeedback, "error", "Erro ao atualizar bypass: " + error.message);
+            setFeedback(listFeedback, "error", "Failed to update bypass: " + error.message);
         }
     }
 
     async function deleteMock(entry) {
-        if (!window.confirm("Excluir o mock " + entry.method + " " + entry.path + "?")) {
+        if (!window.confirm("Delete mock " + entry.method + " " + entry.path + "?")) {
             return;
         }
         setFeedback(listFeedback, "", "");
@@ -2163,10 +2163,10 @@
                 resetForm();
             }
             delete state.lastUpdated[toKey(entry.method, entry.path, entryCollection)];
-            setFeedback(listFeedback, "success", "Mock removido.");
+            setFeedback(listFeedback, "success", "Mock removed.");
             await loadMocks();
         } catch (error) {
-            setFeedback(listFeedback, "error", "Erro ao remover: " + error.message);
+            setFeedback(listFeedback, "error", "Failed to remove: " + error.message);
         }
     }
 
@@ -2177,14 +2177,14 @@
                 const target = document.getElementById(targetId);
                 const text = (target.textContent || "").trim();
                 if (!text || text === "—") {
-                    showToast("error", "Nada para copiar.");
+                    showToast("error", "Nothing to copy.");
                     return;
                 }
                 try {
                     await writeToClipboard(text);
-                    showToast("success", "URL copiada.");
+                    showToast("success", "URL copied.");
                 } catch (error) {
-                    showToast("error", "Não foi possível copiar: " + error.message);
+                    showToast("error", "Unable to copy: " + error.message);
                 }
             });
         });
@@ -2321,7 +2321,7 @@
                 });
                 if (!response.ok) {
                     if (manual) {
-                        showToast("error", "Não foi possível verificar atualizações.");
+                        showToast("error", "Unable to check for updates.");
                     }
                     return;
                 }
@@ -2335,7 +2335,7 @@
 
                 if (appVersionLabel && currentVersion) {
                     appVersionLabel.textContent = "v" + currentVersion;
-                    appVersionLabel.title = "Versão instalada: " + currentVersion;
+                    appVersionLabel.title = "Installed version: " + currentVersion;
                 }
 
                 if (!updateAvailable || !latestVersion) {
@@ -2346,7 +2346,7 @@
                         } else {
                             showToast(
                                 "success",
-                                "Você já está na versão mais recente" +
+                                "You are already on the latest version" +
                                     (currentVersion ? " (" + currentVersion + ")" : "") +
                                     "."
                             );
@@ -2366,15 +2366,15 @@
                 }
 
                 updateBannerText.textContent =
-                    "Nova versão " + latestVersion + " disponível (atual: " + currentVersion + ").";
+                    "New version " + latestVersion + " available (current: " + currentVersion + ").";
                 updateBanner.hidden = false;
 
                 if (manual) {
-                    showToast("success", "Nova versão " + latestVersion + " encontrada.");
+                    showToast("success", "New version " + latestVersion + " found.");
                 }
             } catch (_error) {
                 if (manual) {
-                    showToast("error", "Não foi possível verificar atualizações.");
+                    showToast("error", "Unable to check for updates.");
                 }
             } finally {
                 if (manual && checkUpdateButton) {
@@ -2420,7 +2420,7 @@
 
         async function applyUpdate() {
             updateApplyButton.disabled = true;
-            showUpdateOverlay("Baixando e aplicando a nova versão. O serviço será reiniciado.");
+            showUpdateOverlay("Downloading and applying the new version. The service will restart.");
 
             try {
                 const response = await fetch(updateApiUrl, {
@@ -2432,11 +2432,11 @@
                 if (!response.ok && response.status !== 202) {
                     updateOverlay.hidden = true;
                     updateApplyButton.disabled = false;
-                    showToast("error", data.message || data.Message || "Não foi possível iniciar a atualização.");
+                    showToast("error", data.message || data.Message || "Unable to start the update.");
                     return;
                 }
 
-                showUpdateOverlay("Reiniciando o serviço… a página será recarregada automaticamente.");
+                showUpdateOverlay("Restarting the service… the page will reload automatically.");
 
                 const recovered = await waitForServiceRestart();
                 if (recovered) {
@@ -2446,9 +2446,9 @@
 
                 updateOverlay.hidden = true;
                 updateApplyButton.disabled = false;
-                showToast("error", "A atualização foi iniciada, mas o serviço demorou para voltar. Recarregue a página manualmente.");
+                showToast("error", "The update started, but the service took too long to come back. Reload the page manually.");
             } catch (_error) {
-                showUpdateOverlay("Aguardando o serviço voltar…");
+                showUpdateOverlay("Waiting for the service to come back…");
                 const recovered = await waitForServiceRestart();
                 if (recovered) {
                     window.location.reload();
@@ -2457,7 +2457,7 @@
 
                 updateOverlay.hidden = true;
                 updateApplyButton.disabled = false;
-                showToast("error", "Falha ao acompanhar a atualização. Verifique o serviço e recarregue a página.");
+                showToast("error", "Failed to track the update. Check the service and reload the page.");
             }
         }
 

@@ -1,17 +1,17 @@
 namespace LocalMock.Models;
 
-/// <summary>Request para ativar ou desativar um mock de coleção.</summary>
+/// <summary>Request to enable or disable a collection mock.</summary>
 public class UpdateMockEnabledRequest
 {
-    /// <summary>Identificador da coleção.</summary>
+    /// <summary>Collection identifier.</summary>
     public string Collection { get; set; } = string.Empty;
 
-    /// <summary>Método HTTP do mock.</summary>
+    /// <summary>HTTP method of the mock.</summary>
     public string Method { get; set; } = "GET";
 
-    /// <summary>Path do endpoint mockado.</summary>
+    /// <summary>Path of the mocked endpoint.</summary>
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Indica se o mock está ativo na coleção.</summary>
+    /// <summary>Whether the mock is active in the collection.</summary>
     public bool Enabled { get; set; } = true;
 }

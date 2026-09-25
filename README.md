@@ -50,7 +50,7 @@ Invoke-RestMethod -Method Post -Uri http://localhost:5183/mock -ContentType "app
 Invoke-RestMethod http://localhost:5183/mock/demo/users
 ```
 
-Collection IDs may contain letters, digits, `_`, and `-`; `collections` and `bypass` are reserved. A standalone mock can also be configured with its own `bypassEnabled` and `bypassUrl`. For collection mocks, the `enabled` flag controls whether the saved response is served or the collection bypass is used.
+Collection IDs may contain letters, digits, `_`, and `-`; `collections`, `bypass`, and `enabled` are reserved. A standalone mock can also be configured with its own `bypassEnabled` and `bypassUrl`. For collection mocks, the `enabled` flag controls whether the saved response is served or the collection bypass is used.
 
 ## Mock options
 

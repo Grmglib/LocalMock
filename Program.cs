@@ -53,8 +53,9 @@ namespace LocalMock
             builder.Services.AddSingleton<IGitHubReleaseService, GitHubReleaseService>();
             builder.Services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
-            builder.Services.AddScoped<IMockService, MockService>();
-            builder.Services.AddScoped<ICollectionService, CollectionService>();
+            builder.Services.AddSingleton<IMockStoreRepository, MockStoreRepository>();
+            builder.Services.AddSingleton<IMockService, MockService>();
+            builder.Services.AddSingleton<ICollectionService, CollectionService>();
             builder.Services.AddHttpForwarder();
             builder.Services.AddSingleton<IBypassProxyService, BypassProxyService>();
 
@@ -72,23 +73,23 @@ namespace LocalMock
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1",
-                    Title = "API de Mock - Documentação",
+                    Title = "Mock API - Documentation",
                     Description = @"
-## Documentação da API de Mock
+## Mock API Documentation
 
-Esta API centraliza o cadastro e a execução de respostas mockadas para apoiar testes de integração.
+This API centralizes registration and serving of mocked responses to support integration testing.
 
-### Funcionalidades principais
+### Main features
 
-- Criar ou atualizar mocks por método e path (por coleção)
-- Gerenciar coleções com URL de bypass (`/mock/collections`)
-- Servir mocks por coleção em `/mock/{colecao}/{endpoint}` (mock se existir, senão bypass)
-- Rota `/mock/{path}` para mocks sem coleção
+- Create or update mocks by method and path (per collection)
+- Manage collections with a bypass URL (`/mock/collections`)
+- Serve collection mocks at `/mock/{collection}/{endpoint}` (mock if present, otherwise bypass)
+- Route `/mock/{path}` for standalone mocks
 
-### Formato de Dados
+### Data format
 
-- Todos os endpoints utilizam **JSON**
-- O corpo de resposta do mock aceita **JSON livre**
+- All endpoints use **JSON**
+- The mock response body accepts **free-form JSON**
 "
                 });
 
@@ -124,7 +125,7 @@ Esta API centraliza o cadastro e a execução de respostas mockadas para apoiar 
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint("v1/swagger.json", "API de Mock v1");
+                options.SwaggerEndpoint("v1/swagger.json", "Mock API v1");
                 options.RoutePrefix = "swagger";
                 options.DocumentTitle = "Local Mock";
                 options.DefaultModelsExpandDepth(2);

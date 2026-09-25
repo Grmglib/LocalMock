@@ -7,8 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace LocalMock.Controllers
 {
     /// <summary>
-    /// Serviço de mock para os endpoints da API.
-    /// Permite criar, listar e servir respostas mockadas.
+    /// Mock API endpoints for creating, listing, and serving mocked responses.
     /// </summary>
     [ApiController]
     [Route("mock")]
@@ -30,27 +29,32 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Cria ou atualiza um mock para um endpoint.
+        /// Creates or updates a mock for an endpoint.
         /// </summary>
         [HttpPost]
-        [SwaggerOperation(Summary = "Cria mock", Description = "Registra um mock para um método e path da API", OperationId = "CriarMock", Tags = new[] { "Mock" })]
-        [SwaggerResponse(201, "Mock criado com sucesso")]
-        [SwaggerResponse(400, "Requisição inválida")]
+        [SwaggerOperation(Summary = "Create mock", Description = "Registers a mock for an HTTP method and path", OperationId = "CreateMock", Tags = new[] { "Mock" })]
+        [SwaggerResponse(201, "Mock created successfully")]
+        [SwaggerResponse(400, "Invalid request")]
         public async Task<IActionResult> Create([FromBody] CreateMockRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Method) || string.IsNullOrWhiteSpace(request.Path))
             {
-                return BadRequest("Method e Path são obrigatórios.");
+                return BadRequest("Method and Path are required.");
+            }
+
+            if (request.StatusCode < 100 || request.StatusCode > 599)
+            {
+                return BadRequest("StatusCode must be between 100 and 599.");
             }
 
             if (request.BypassEnabled && !IsValidBypassUrl(request.BypassUrl))
             {
-                return BadRequest("BypassUrl deve ser uma URL absoluta HTTP/HTTPS quando o bypass estiver ativo.");
+                return BadRequest("BypassUrl must be an absolute HTTP/HTTPS URL when bypass is enabled.");
             }
 
             if (request.ResponseDelayMs < 0)
             {
-                return BadRequest("ResponseDelayMs deve ser maior ou igual a zero.");
+                return BadRequest("ResponseDelayMs must be greater than or equal to zero.");
             }
 
             var collection = MockStorePersistence.NormalizeCollectionReference(request.Collection);
@@ -58,12 +62,12 @@ namespace LocalMock.Controllers
             {
                 if (!MockStorePersistence.IsValidCollectionId(collection))
                 {
-                    return BadRequest("Collection deve ser um slug válido (letras, números, _ e -).");
+                    return BadRequest("Collection must be a valid slug (letters, digits, _ and -).");
                 }
 
                 if (!await _collectionService.ExistsAsync(collection, cancellationToken))
                 {
-                    return BadRequest($"Coleção '{collection}' não encontrada.");
+                    return BadRequest($"Collection '{collection}' was not found.");
                 }
             }
 
@@ -84,13 +88,13 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Lista todos os mocks registrados.
+        /// Lists all registered mocks.
         /// </summary>
         [HttpGet]
-        [SwaggerOperation(Summary = "Lista mocks", Description = "Retorna mocks cadastrados, opcionalmente filtrados por coleção", OperationId = "ListarMocks", Tags = new[] { "Mock" })]
-        [SwaggerResponse(200, "Lista de mocks", typeof(IReadOnlyList<MockEntry>))]
+        [SwaggerOperation(Summary = "List mocks", Description = "Returns registered mocks, optionally filtered by collection", OperationId = "ListMocks", Tags = new[] { "Mock" })]
+        [SwaggerResponse(200, "Mock list", typeof(IReadOnlyList<MockEntry>))]
         public async Task<ActionResult<IReadOnlyList<MockEntry>>> List(
-            [FromQuery, SwaggerParameter("Filtrar por coleção")] string? collection,
+            [FromQuery, SwaggerParameter("Filter by collection")] string? collection,
             CancellationToken cancellationToken)
         {
             var list = await _mockService.ListAsync(collection, cancellationToken);
@@ -98,21 +102,21 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Remove um mock pelo método e path.
+        /// Removes a mock by method and path.
         /// </summary>
         [HttpDelete]
-        [SwaggerOperation(Summary = "Remove mock", Description = "Remove o mock para o método e path informados", OperationId = "RemoverMock", Tags = new[] { "Mock" })]
-        [SwaggerResponse(204, "Mock removido")]
-        [SwaggerResponse(400, "Parâmetros inválidos")]
+        [SwaggerOperation(Summary = "Remove mock", Description = "Removes the mock for the given method and path", OperationId = "RemoveMock", Tags = new[] { "Mock" })]
+        [SwaggerResponse(204, "Mock removed")]
+        [SwaggerResponse(400, "Invalid parameters")]
         public async Task<IActionResult> Remove(
-            [FromQuery, SwaggerParameter("Método HTTP", Required = true)] string method,
-            [FromQuery, SwaggerParameter("Path do endpoint", Required = true)] string path,
-            [FromQuery, SwaggerParameter("Coleção")] string? collection,
+            [FromQuery, SwaggerParameter("HTTP method", Required = true)] string method,
+            [FromQuery, SwaggerParameter("Endpoint path", Required = true)] string path,
+            [FromQuery, SwaggerParameter("Collection")] string? collection,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(method) || string.IsNullOrWhiteSpace(path))
             {
-                return BadRequest("method e path são obrigatórios.");
+                return BadRequest("method and path are required.");
             }
 
             await _mockService.RemoveAsync(collection, method.Trim(), path, cancellationToken);
@@ -120,23 +124,23 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Ativa ou desativa o bypass de um mock salvo.
+        /// Enables or disables bypass for a saved mock.
         /// </summary>
         [HttpPatch("bypass")]
-        [SwaggerOperation(Summary = "Atualiza bypass", Description = "Ativa ou desativa o bypass de um mock cadastrado", OperationId = "AtualizarBypass", Tags = new[] { "Mock" })]
-        [SwaggerResponse(204, "Bypass atualizado")]
-        [SwaggerResponse(400, "Requisição inválida")]
-        [SwaggerResponse(404, "Nenhum mock encontrado para o endpoint")]
+        [SwaggerOperation(Summary = "Update bypass", Description = "Enables or disables bypass for a registered mock", OperationId = "UpdateBypass", Tags = new[] { "Mock" })]
+        [SwaggerResponse(204, "Bypass updated")]
+        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerResponse(404, "No mock found for the endpoint")]
         public async Task<IActionResult> UpdateBypass([FromBody] UpdateBypassRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Method) || string.IsNullOrWhiteSpace(request.Path))
             {
-                return BadRequest("Method e Path são obrigatórios.");
+                return BadRequest("Method and Path are required.");
             }
 
             if (request.BypassEnabled && !IsValidBypassUrl(request.BypassUrl))
             {
-                return BadRequest("BypassUrl deve ser uma URL absoluta HTTP/HTTPS quando o bypass estiver ativo.");
+                return BadRequest("BypassUrl must be an absolute HTTP/HTTPS URL when bypass is enabled.");
             }
 
             var updated = await _mockService.UpdateBypassAsync(
@@ -151,20 +155,20 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Ativa ou desativa um mock de coleção.
+        /// Enables or disables a collection mock.
         /// </summary>
         [HttpPatch("enabled")]
-        [SwaggerOperation(Summary = "Atualiza status do mock", Description = "Ativa ou desativa um mock em uma coleção. Inativo usa o bypass da coleção.", OperationId = "AtualizarMockEnabled", Tags = new[] { "Mock" })]
-        [SwaggerResponse(204, "Status atualizado")]
-        [SwaggerResponse(400, "Requisição inválida")]
-        [SwaggerResponse(404, "Nenhum mock encontrado para o endpoint")]
+        [SwaggerOperation(Summary = "Update mock status", Description = "Enables or disables a mock in a collection. When disabled, the collection bypass is used.", OperationId = "UpdateMockEnabled", Tags = new[] { "Mock" })]
+        [SwaggerResponse(204, "Status updated")]
+        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerResponse(404, "No mock found for the endpoint")]
         public async Task<IActionResult> UpdateEnabled([FromBody] UpdateMockEnabledRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Collection) ||
                 string.IsNullOrWhiteSpace(request.Method) ||
                 string.IsNullOrWhiteSpace(request.Path))
             {
-                return BadRequest("Collection, Method e Path são obrigatórios.");
+                return BadRequest("Collection, Method, and Path are required.");
             }
 
             var updated = await _mockService.UpdateEnabledAsync(
@@ -178,11 +182,11 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Lista todas as coleções de mocks.
+        /// Lists all mock collections.
         /// </summary>
         [HttpGet("collections")]
-        [SwaggerOperation(Summary = "Lista coleções", Description = "Retorna todas as coleções cadastradas", OperationId = "ListarColecoes", Tags = new[] { "Coleção" })]
-        [SwaggerResponse(200, "Lista de coleções", typeof(IReadOnlyList<MockCollection>))]
+        [SwaggerOperation(Summary = "List collections", Description = "Returns all registered collections", OperationId = "ListCollections", Tags = new[] { "Collection" })]
+        [SwaggerResponse(200, "Collection list", typeof(IReadOnlyList<MockCollection>))]
         public async Task<ActionResult<IReadOnlyList<MockCollection>>> ListCollections(CancellationToken cancellationToken)
         {
             var list = await _collectionService.ListAsync(cancellationToken);
@@ -190,43 +194,43 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Cria uma nova coleção de mocks.
+        /// Creates a new mock collection.
         /// </summary>
         [HttpPost("collections")]
-        [SwaggerOperation(Summary = "Cria coleção", Description = "Registra uma coleção com URL de bypass", OperationId = "CriarColecao", Tags = new[] { "Coleção" })]
-        [SwaggerResponse(201, "Coleção criada")]
-        [SwaggerResponse(400, "Requisição inválida")]
-        [SwaggerResponse(409, "Coleção já existe")]
+        [SwaggerOperation(Summary = "Create collection", Description = "Registers a collection with a bypass URL", OperationId = "CreateCollection", Tags = new[] { "Collection" })]
+        [SwaggerResponse(201, "Collection created")]
+        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerResponse(409, "Collection already exists")]
         public async Task<IActionResult> CreateCollection([FromBody] CreateCollectionRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Id))
             {
-                return BadRequest("Id é obrigatório.");
+                return BadRequest("Id is required.");
             }
 
             var normalizedId = MockStorePersistence.NormalizeCollectionId(request.Id);
             if (!MockStorePersistence.IsValidCollectionId(normalizedId))
             {
-                return BadRequest("Id deve ser um slug válido (letras, números, _ e -) e não pode ser um nome reservado.");
+                return BadRequest("Id must be a valid slug (letters, digits, _ and -) and cannot be a reserved name.");
             }
 
             if (!IsValidBypassUrl(request.BypassUrl))
             {
-                return BadRequest("BypassUrl deve ser uma URL absoluta HTTP/HTTPS.");
+                return BadRequest("BypassUrl must be an absolute HTTP/HTTPS URL.");
             }
 
             var created = await _collectionService.CreateAsync(normalizedId, request.BypassUrl, cancellationToken);
-            return created ? StatusCode(201) : Conflict($"Coleção '{normalizedId}' já existe.");
+            return created ? StatusCode(201) : Conflict($"Collection '{normalizedId}' already exists.");
         }
 
         /// <summary>
-        /// Atualiza a URL de bypass de uma coleção.
+        /// Updates the bypass URL of a collection.
         /// </summary>
         [HttpPatch("collections/{id}")]
-        [SwaggerOperation(Summary = "Atualiza bypass da coleção", OperationId = "AtualizarBypassColecao", Tags = new[] { "Coleção" })]
-        [SwaggerResponse(204, "Bypass da coleção atualizado")]
-        [SwaggerResponse(400, "Requisição inválida")]
-        [SwaggerResponse(404, "Coleção não encontrada")]
+        [SwaggerOperation(Summary = "Update collection bypass", OperationId = "UpdateCollectionBypass", Tags = new[] { "Collection" })]
+        [SwaggerResponse(204, "Collection bypass updated")]
+        [SwaggerResponse(400, "Invalid request")]
+        [SwaggerResponse(404, "Collection not found")]
         public async Task<IActionResult> UpdateCollectionBypass(
             string id,
             [FromBody] UpdateCollectionRequest request,
@@ -234,7 +238,7 @@ namespace LocalMock.Controllers
         {
             if (!IsValidBypassUrl(request.BypassUrl))
             {
-                return BadRequest("BypassUrl deve ser uma URL absoluta HTTP/HTTPS.");
+                return BadRequest("BypassUrl must be an absolute HTTP/HTTPS URL.");
             }
 
             var updated = await _collectionService.UpdateBypassAsync(id, request.BypassUrl, cancellationToken);
@@ -242,12 +246,12 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Remove uma coleção e todos os mocks associados.
+        /// Removes a collection and all associated mocks.
         /// </summary>
         [HttpDelete("collections/{id}")]
-        [SwaggerOperation(Summary = "Remove coleção", Description = "Remove a coleção e exclui em cascata todos os mocks vinculados a ela.", OperationId = "RemoverColecao", Tags = new[] { "Coleção" })]
-        [SwaggerResponse(204, "Coleção e mocks removidos")]
-        [SwaggerResponse(404, "Coleção não encontrada")]
+        [SwaggerOperation(Summary = "Remove collection", Description = "Removes the collection and cascadingly deletes all mocks linked to it.", OperationId = "RemoveCollection", Tags = new[] { "Collection" })]
+        [SwaggerResponse(204, "Collection and mocks removed")]
+        [SwaggerResponse(404, "Collection not found")]
         public async Task<IActionResult> RemoveCollection(string id, CancellationToken cancellationToken)
         {
             var (success, error) = await _collectionService.RemoveAsync(id, cancellationToken);
@@ -255,17 +259,17 @@ namespace LocalMock.Controllers
         }
 
         /// <summary>
-        /// Serve respostas mockadas em /mock/{path} ou /mock/{colecao}/{endpoint}.
+        /// Serves mocked responses at /mock/{path} or /mock/{collection}/{endpoint}.
         /// </summary>
         [Route("{*path}")]
         [AcceptVerbs("GET", "POST", "PUT", "DELETE", "PATCH")]
         [SwaggerOperation(
-            Summary = "Servir mock",
-            Description = "Retorna mock sem coleção ou mock de coleção quando o primeiro segmento da rota for uma coleção cadastrada. Ex.: GET /mock/ConsultarCliente ou GET /mock/parceiro/ConsultarCliente",
-            OperationId = "ServirMock",
+            Summary = "Serve mock",
+            Description = "Returns a standalone mock or a collection mock when the first route segment is a registered collection. Example: GET /mock/customers or GET /mock/partner/customers",
+            OperationId = "ServeMock",
             Tags = new[] { "Mock" })]
-        [SwaggerResponse(200, "Resposta mockada ou do bypass")]
-        [SwaggerResponse(404, "Nenhum mock encontrado para o endpoint")]
+        [SwaggerResponse(200, "Mocked or bypass response")]
+        [SwaggerResponse(404, "No mock found for the endpoint")]
         public async Task<IActionResult> Serve([FromRoute] string? path, CancellationToken cancellationToken)
         {
             var method = Request.Method;
@@ -305,7 +309,7 @@ namespace LocalMock.Controllers
             {
                 if (!IsValidBypassUrl(entry.BypassUrl))
                 {
-                    return BadRequest("BypassUrl deve ser uma URL absoluta HTTP/HTTPS quando o bypass estiver ativo.");
+                    return BadRequest("BypassUrl must be an absolute HTTP/HTTPS URL when bypass is enabled.");
                 }
 
                 await _bypassProxyService.ForwardAsync(HttpContext, entry.BypassUrl!, cancellationToken: cancellationToken);
@@ -334,7 +338,7 @@ namespace LocalMock.Controllers
 
             if (!IsValidBypassUrl(mockCollection.BypassUrl))
             {
-                return BadRequest("BypassUrl da coleção deve ser uma URL absoluta HTTP/HTTPS.");
+                return BadRequest("Collection BypassUrl must be an absolute HTTP/HTTPS URL.");
             }
 
             var stripPrefix = $"/mock/{normalizedCollectionId}";

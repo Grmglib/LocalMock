@@ -6,7 +6,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace LocalMock.Swagger
 {
     /// <summary>
-    /// Ajusta exemplos do Swagger para cenários específicos da API de mock.
+    /// Adjusts Swagger examples for mock API scenarios.
     /// </summary>
     public class SchemaExamplesFilter : ISchemaFilter
     {
@@ -16,9 +16,9 @@ namespace LocalMock.Swagger
             {
                 schema.Example = new OpenApiObject
                 {
-                    ["collection"] = new OpenApiString("parceiro"),
+                    ["collection"] = new OpenApiString("partner"),
                     ["method"] = new OpenApiString("GET"),
-                    ["path"] = new OpenApiString("/ConsultarCliente"),
+                    ["path"] = new OpenApiString("/customers"),
                     ["statusCode"] = new OpenApiInteger(200),
                     ["responseDelayMs"] = new OpenApiInteger(0),
                     ["enabled"] = new OpenApiBoolean(true),
@@ -26,13 +26,13 @@ namespace LocalMock.Swagger
                     ["bypassUrl"] = new OpenApiNull(),
                     ["responseBody"] = new OpenApiObject
                     {
-                        ["tipoResposta"] = new OpenApiString("OK"),
-                        ["mensagemErro"] = new OpenApiNull(),
-                        ["dados"] = new OpenApiObject
+                        ["status"] = new OpenApiString("OK"),
+                        ["errorMessage"] = new OpenApiNull(),
+                        ["data"] = new OpenApiObject
                         {
-                            ["tipoPessoa"] = new OpenApiString("PF"),
-                            ["cpfcnpj"] = new OpenApiString("12345678901"),
-                            ["nome"] = new OpenApiString("João da Silva")
+                            ["personType"] = new OpenApiString("individual"),
+                            ["document"] = new OpenApiString("12345678901"),
+                            ["name"] = new OpenApiString("Jane Doe")
                         }
                     }
                 };
@@ -42,8 +42,8 @@ namespace LocalMock.Swagger
             {
                 schema.Example = new OpenApiObject
                 {
-                    ["id"] = new OpenApiString("parceiro"),
-                    ["bypassUrl"] = new OpenApiString("https://api.parceiro.exemplo.com")
+                    ["id"] = new OpenApiString("partner"),
+                    ["bypassUrl"] = new OpenApiString("https://api.partner.example.com")
                 };
             }
 
@@ -51,7 +51,7 @@ namespace LocalMock.Swagger
             {
                 schema.Example = new OpenApiObject
                 {
-                    ["bypassUrl"] = new OpenApiString("https://api.parceiro.exemplo.com")
+                    ["bypassUrl"] = new OpenApiString("https://api.partner.example.com")
                 };
             }
         }

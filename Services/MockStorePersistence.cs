@@ -8,13 +8,13 @@ namespace LocalMock.Services;
 
 internal static class MockStorePersistence
 {
-    internal static readonly object FileLock = new();
     private static readonly Regex CollectionIdPattern = new("^[a-zA-Z0-9_-]+$", RegexOptions.Compiled);
 
     internal static readonly HashSet<string> ReservedCollectionIds = new(StringComparer.OrdinalIgnoreCase)
     {
         "collections",
-        "bypass"
+        "bypass",
+        "enabled"
     };
 
     internal static string GetFilePath(IConfiguration configuration, IHostEnvironment hostEnvironment)
@@ -42,26 +42,27 @@ internal static class MockStorePersistence
 
             if (token is JArray array)
             {
-                var mocksSemColecao = array.ToObject<List<MockEntry>>() ?? new List<MockEntry>();
-                var normalizedMocks = NormalizeMocks(mocksSemColecao);
-                ApplyDefaultEnabledForCollectionMocks(normalizedMocks, array);
+                var legacyMocks = array.ToObject<List<MockEntry>>() ?? new List<MockEntry>();
+                ApplyDefaultEnabledForCollectionMocks(legacyMocks, array);
                 return new MockStore
                 {
                     Collections = new List<MockCollection>(),
-                    Mocks = normalizedMocks
+                    Mocks = NormalizeMocks(legacyMocks)
                 };
             }
 
             var store = token.ToObject<MockStore>() ?? new MockStore();
+            ApplyDefaultEnabledForCollectionMocks(store.Mocks, token["Mocks"] as JArray);
             store.Collections = NormalizeCollections(store.Collections);
             store.Mocks = NormalizeMocks(store.Mocks);
-            ApplyDefaultEnabledForCollectionMocks(store.Mocks, token["Mocks"] as JArray);
             return store;
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Erro ao ler ou deserializar arquivo de mocks em {FilePath}.", filePath);
-            return new MockStore();
+            logger?.LogError(ex, "Failed to read or deserialize mock store at {FilePath}.", filePath);
+            throw new InvalidOperationException(
+                $"Failed to read mock store at '{filePath}'. The file was left unchanged.",
+                ex);
         }
     }
 
@@ -111,6 +112,10 @@ internal static class MockStorePersistence
             .ToList();
     }
 
+    /// <summary>
+    /// Applies Enabled=true for collection mocks when the property is missing from the raw JSON,
+    /// before any filtering that would shift list indices.
+    /// </summary>
     internal static void ApplyDefaultEnabledForCollectionMocks(List<MockEntry> mocks, JArray? rawMocks)
     {
         if (rawMocks == null)

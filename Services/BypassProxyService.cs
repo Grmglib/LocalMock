@@ -59,7 +59,7 @@ public class BypassProxyService : IBypassProxyService, IDisposable
         var errorFeature = context.Features.Get<IForwarderErrorFeature>();
         _logger.LogWarning(
             errorFeature?.Exception,
-            "Erro ao encaminhar bypass para {DestinationUri}. ForwarderError={ForwarderError}",
+            "Failed to forward bypass to {DestinationUri}. ForwarderError={ForwarderError}",
             destinationUri,
             error);
 
@@ -68,8 +68,8 @@ public class BypassProxyService : IBypassProxyService, IDisposable
             context.Response.StatusCode = StatusCodes.Status502BadGateway;
             await context.Response.WriteAsJsonAsync(new
             {
-                message = "Não foi possível encaminhar a requisição para a URL de bypass.",
-                detail = "Verifique se a URL, porta e protocolo HTTP/HTTPS estão corretos."
+                message = "Unable to forward the request to the bypass URL.",
+                detail = "Check that the URL, port, and HTTP/HTTPS protocol are correct."
             }, cancellationToken);
         }
 
@@ -127,8 +127,8 @@ public class BypassProxyService : IBypassProxyService, IDisposable
             request.Method,
             request.Path,
             request.QueryString,
-            request.ContentType ?? "<sem content-type>",
-            request.ContentLength?.ToString() ?? "<sem content-length>",
+            request.ContentType ?? "<no content-type>",
+            request.ContentLength?.ToString() ?? "<no content-length>",
             FormatHeaders(request.Headers.Select(header => new KeyValuePair<string, IEnumerable<string>>(
                 header.Key,
                 header.Value.Select(value => value ?? string.Empty)))),

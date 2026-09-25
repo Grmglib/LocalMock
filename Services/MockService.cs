@@ -5,18 +5,11 @@ namespace LocalMock.Services;
 
 public class MockService : IMockService
 {
-    private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _hostEnvironment;
-    private readonly ILogger<MockService> _logger;
+    private readonly IMockStoreRepository _storeRepository;
 
-    public MockService(
-        IConfiguration configuration,
-        IHostEnvironment hostEnvironment,
-        ILogger<MockService> logger)
+    public MockService(IMockStoreRepository storeRepository)
     {
-        _configuration = configuration;
-        _hostEnvironment = hostEnvironment;
-        _logger = logger;
+        _storeRepository = storeRepository;
     }
 
     public Task AddAsync(
@@ -49,9 +42,8 @@ public class MockService : IMockService
             BypassUrl = MockStorePersistence.NormalizeBypassUrl(bypassUrl)
         };
 
-        lock (MockStorePersistence.FileLock)
+        _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             var existingIndex = store.Mocks.FindIndex(item =>
                 string.Equals(item.Method, entry.Method, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Path, entry.Path, StringComparison.Ordinal) &&
@@ -66,8 +58,8 @@ public class MockService : IMockService
                 store.Mocks.Add(entry);
             }
 
-            WriteStoreLocked(store);
-        }
+            save();
+        });
 
         return Task.CompletedTask;
     }
@@ -77,15 +69,12 @@ public class MockService : IMockService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedCollection = MockStorePersistence.NormalizeCollectionReference(collection);
         var normalizedPath = MockStorePersistence.NormalizePath(path);
-        MockEntry? entry;
 
-        lock (MockStorePersistence.FileLock)
-        {
-            entry = ReadStoreLocked().Mocks.FirstOrDefault(item =>
+        var entry = _storeRepository.ExecuteLocked((store, _) =>
+            store.Mocks.FirstOrDefault(item =>
                 string.Equals(item.Method, method, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Path, normalizedPath, StringComparison.Ordinal) &&
-                MockStorePersistence.MatchesCollection(item, normalizedCollection));
-        }
+                MockStorePersistence.MatchesCollection(item, normalizedCollection)));
 
         return Task.FromResult(entry);
     }
@@ -94,15 +83,14 @@ public class MockService : IMockService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedCollection = MockStorePersistence.NormalizeCollectionReference(collection);
-        IReadOnlyList<MockEntry> entries;
 
-        lock (MockStorePersistence.FileLock)
+        var entries = _storeRepository.ExecuteLocked((store, _) =>
         {
-            var mocks = ReadStoreLocked().Mocks;
-            entries = string.IsNullOrWhiteSpace(normalizedCollection)
-                ? mocks
-                : mocks.Where(item => MockStorePersistence.MatchesCollection(item, normalizedCollection)).ToList();
-        }
+            IReadOnlyList<MockEntry> list = string.IsNullOrWhiteSpace(normalizedCollection)
+                ? store.Mocks.ToList()
+                : store.Mocks.Where(item => MockStorePersistence.MatchesCollection(item, normalizedCollection)).ToList();
+            return list;
+        });
 
         return Task.FromResult(entries);
     }
@@ -113,15 +101,14 @@ public class MockService : IMockService
         var normalizedCollection = MockStorePersistence.NormalizeCollectionReference(collection);
         var normalizedPath = MockStorePersistence.NormalizePath(path);
 
-        lock (MockStorePersistence.FileLock)
+        _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             store.Mocks.RemoveAll(item =>
                 string.Equals(item.Method, method, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Path, normalizedPath, StringComparison.Ordinal) &&
                 MockStorePersistence.MatchesCollection(item, normalizedCollection));
-            WriteStoreLocked(store);
-        }
+            save();
+        });
 
         return Task.CompletedTask;
     }
@@ -137,24 +124,24 @@ public class MockService : IMockService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedCollection = MockStorePersistence.NormalizeCollectionReference(collection);
         var normalizedPath = MockStorePersistence.NormalizePath(path);
-        var updated = false;
 
-        lock (MockStorePersistence.FileLock)
+        var updated = _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             var entry = store.Mocks.FirstOrDefault(item =>
                 string.Equals(item.Method, method, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Path, normalizedPath, StringComparison.Ordinal) &&
                 MockStorePersistence.MatchesCollection(item, normalizedCollection));
 
-            if (entry != null)
+            if (entry == null)
             {
-                entry.BypassEnabled = bypassEnabled;
-                entry.BypassUrl = MockStorePersistence.NormalizeBypassUrl(bypassUrl);
-                updated = true;
-                WriteStoreLocked(store);
+                return false;
             }
-        }
+
+            entry.BypassEnabled = bypassEnabled;
+            entry.BypassUrl = MockStorePersistence.NormalizeBypassUrl(bypassUrl);
+            save();
+            return true;
+        });
 
         return Task.FromResult(updated);
     }
@@ -169,32 +156,26 @@ public class MockService : IMockService
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedCollection = MockStorePersistence.NormalizeCollectionId(collection);
         var normalizedPath = MockStorePersistence.NormalizePath(path);
-        var updated = false;
 
-        lock (MockStorePersistence.FileLock)
+        var updated = _storeRepository.ExecuteLocked((store, save) =>
         {
-            var store = ReadStoreLocked();
             var entry = store.Mocks.FirstOrDefault(item =>
                 string.Equals(item.Method, method, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Path, normalizedPath, StringComparison.Ordinal) &&
                 MockStorePersistence.MatchesCollection(item, normalizedCollection));
 
-            if (entry != null && !string.IsNullOrWhiteSpace(entry.Collection))
+            if (entry == null || string.IsNullOrWhiteSpace(entry.Collection))
             {
-                entry.Enabled = enabled;
-                updated = true;
-                WriteStoreLocked(store);
+                return false;
             }
-        }
+
+            entry.Enabled = enabled;
+            save();
+            return true;
+        });
 
         return Task.FromResult(updated);
     }
-
-    private string GetFilePath() => MockStorePersistence.GetFilePath(_configuration, _hostEnvironment);
-
-    private MockStore ReadStoreLocked() => MockStorePersistence.ReadStore(GetFilePath(), _logger);
-
-    private void WriteStoreLocked(MockStore store) => MockStorePersistence.WriteStore(GetFilePath(), store);
 
     private static JToken? ToResponseBodyToken(object? responseBody)
     {

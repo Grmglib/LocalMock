@@ -1,6 +1,6 @@
 namespace LocalMock.Models;
 
-/// <summary>Envelope persistido em mocks.json com coleções e mocks.</summary>
+/// <summary>Persisted envelope in mocks.json with collections and mocks.</summary>
 public class MockStore
 {
     public List<MockCollection> Collections { get; set; } = new();

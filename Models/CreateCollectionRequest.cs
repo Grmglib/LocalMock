@@ -1,11 +1,11 @@
 namespace LocalMock.Models;
 
-/// <summary>Request para criação de uma coleção de mocks.</summary>
+/// <summary>Request to create a mock collection.</summary>
 public class CreateCollectionRequest
 {
-    /// <summary>Identificador da coleção (slug, ex.: parceiro).</summary>
+    /// <summary>Collection identifier (slug, e.g. partner).</summary>
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>URL base absoluta HTTP/HTTPS para bypass.</summary>
+    /// <summary>Absolute HTTP/HTTPS base URL for bypass.</summary>
     public string BypassUrl { get; set; } = string.Empty;
 }
