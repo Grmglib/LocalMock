@@ -14,19 +14,10 @@
     <link rel="stylesheet" href="app.css">
 </head>
 <body class="app-shell">
-    <div id="update-banner" class="update-banner" hidden role="status" aria-live="polite">
-        <div class="update-banner-content">
-            <p id="update-banner-text" class="update-banner-text">A new version is available.</p>
-            <div class="update-banner-actions">
-                <button id="update-apply-button" class="button button-primary button-small" type="button">Update</button>
-                <button id="update-dismiss-button" class="button button-small" type="button" title="Dismiss for now">Dismiss</button>
-            </div>
-        </div>
-    </div>
     <div id="update-overlay" class="update-overlay" hidden aria-live="assertive">
         <div class="update-overlay-card">
             <p class="update-overlay-title">Updating…</p>
-            <p id="update-overlay-message" class="update-overlay-message">The service will restart. Please wait.</p>
+            <p id="update-overlay-message" class="update-overlay-message">LocalMock will restart. Please wait.</p>
         </div>
     </div>
     <header class="app-topbar">
@@ -47,6 +38,7 @@
             <button id="check-update-button" class="icon-button" type="button" title="Check for a new version" aria-label="Check for a new version">
                 <span class="icon-check-update" aria-hidden="true">↻</span>
             </button>
+            <button id="update-apply-button" class="button button-primary button-small" type="button" hidden>Update</button>
             <button id="theme-toggle-button" class="icon-button" type="button" title="Toggle light/dark theme" aria-label="Toggle theme">
                 <span class="icon-theme" aria-hidden="true">◐</span>
             </button>

@@ -1,8 +1,9 @@
 using LocalMock.Services;
 using LocalMock.Swagger;
-using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace LocalMock
 {
@@ -10,39 +11,32 @@ namespace LocalMock
     {
         public static void Main(string[] args)
         {
-            var isWindowsService = WindowsServiceHelpers.IsWindowsService();
-            var contentRoot = isWindowsService
-                ? AppContext.BaseDirectory
-                : Directory.GetCurrentDirectory();
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
 
-            if (isWindowsService)
-            {
-                Directory.SetCurrentDirectory(AppContext.BaseDirectory);
-            }
+            var background = args.Contains("--background", StringComparer.OrdinalIgnoreCase);
+            var appArgs = args.Where(arg => !arg.Equals("--background", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var currentDirectory = Directory.GetCurrentDirectory();
+            var contentRoot = File.Exists(Path.Combine(AppContext.BaseDirectory, "wwwroot", "ui", "index.html"))
+                ? AppContext.BaseDirectory
+                : currentDirectory;
 
             var builder = WebApplication.CreateBuilder(new WebApplicationOptions
             {
-                Args = args,
+                Args = appArgs,
                 ContentRootPath = contentRoot
             });
 
-            builder.Host.UseWindowsService();
-
-            if (isWindowsService)
-            {
-                var dataDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "LocalMock");
-                Directory.CreateDirectory(dataDirectory);
-
-                builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Mock:FilePath"] = Path.Combine(dataDirectory, "mocks.json")
-                });
-            }
-
             var port = builder.Configuration.GetValue<int>("LocalMock:Port", 5183);
             builder.WebHost.UseUrls($"http://localhost:{port}");
+            var managerUrl = $"http://localhost:{port}/ui/";
+
+            using var mutex = new Mutex(true, @"Local\LocalMock.Tray", out var firstInstance);
+            if (!firstInstance)
+            {
+                OpenManager(managerUrl);
+                return;
+            }
 
             builder.Services.Configure<UpdateOptions>(
                 builder.Configuration.GetSection(UpdateOptions.SectionName));
@@ -148,7 +142,39 @@ This API centralizes registration and serving of mocked responses to support int
             app.UseAuthorization();
             app.MapControllers();
 
-            app.Run();
+            try
+            {
+                app.StartAsync().GetAwaiter().GetResult();
+                using var tray = new TrayApplicationContext(managerUrl);
+                using var stopping = app.Lifetime.ApplicationStopping.Register(tray.RequestExit);
+                if (!background)
+                {
+                    OpenManager(managerUrl);
+                }
+
+                Application.Run(tray);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "LocalMock could not start", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                app.StopAsync().GetAwaiter().GetResult();
+                app.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+        }
+
+        internal static void OpenManager(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "LocalMock could not open the browser", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
     }
 }

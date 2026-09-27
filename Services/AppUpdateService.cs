@@ -43,6 +43,7 @@ public sealed class AppUpdateService : IAppUpdateService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly UpdateOptions _options;
     private readonly ILogger<AppUpdateService> _logger;
+    private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _updateLock = new(1, 1);
     private bool _updateInProgress;
 
@@ -50,12 +51,14 @@ public sealed class AppUpdateService : IAppUpdateService
         IGitHubReleaseService gitHubReleaseService,
         IHttpClientFactory httpClientFactory,
         IOptions<UpdateOptions> options,
-        ILogger<AppUpdateService> logger)
+        ILogger<AppUpdateService> logger,
+        IConfiguration configuration)
     {
         _gitHubReleaseService = gitHubReleaseService;
         _httpClientFactory = httpClientFactory;
         _options = options.Value;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<VersionStatusResult> GetVersionStatusAsync(CancellationToken cancellationToken = default)
@@ -76,14 +79,18 @@ public sealed class AppUpdateService : IAppUpdateService
             }
 
             var latestVersion = AppVersion.Normalize(latest.TagName);
+            var newer = AppVersion.IsNewer(latestVersion, current);
+            var hasAsset = !string.IsNullOrWhiteSpace(latest.AssetDownloadUrl);
             return new VersionStatusResult
             {
                 CurrentVersion = current,
                 LatestVersion = latestVersion,
-                UpdateAvailable = AppVersion.IsNewer(latestVersion, current) &&
-                    !string.IsNullOrWhiteSpace(latest.AssetDownloadUrl),
+                UpdateAvailable = newer && hasAsset,
                 ReleaseUrl = latest.HtmlUrl,
-                ReleaseNotes = latest.Body
+                ReleaseNotes = latest.Body,
+                Error = newer && !hasAsset
+                    ? $"Release {latestVersion} does not contain '{_options.AssetName}'."
+                    : null
             };
         }
         catch (Exception ex)
@@ -122,22 +129,18 @@ public sealed class AppUpdateService : IAppUpdateService
                 };
             }
 
-            var status = await GetVersionStatusAsync(cancellationToken);
-            if (!status.UpdateAvailable)
+            var release = await _gitHubReleaseService.GetLatestReleaseAsync(cancellationToken);
+            if (release == null || !AppVersion.IsNewer(release.TagName, AppVersion.Current))
             {
                 return new UpdateStartResult
                 {
                     Started = false,
                     StatusCode = 400,
-                    Message = string.IsNullOrWhiteSpace(status.Error)
-                        ? "No update available."
-                        : status.Error,
-                    TargetVersion = status.LatestVersion
+                    Message = "No update available."
                 };
             }
 
-            var release = await _gitHubReleaseService.GetLatestReleaseAsync(cancellationToken);
-            if (release == null || string.IsNullOrWhiteSpace(release.AssetDownloadUrl))
+            if (string.IsNullOrWhiteSpace(release.AssetDownloadUrl))
             {
                 return new UpdateStartResult
                 {
@@ -156,7 +159,15 @@ public sealed class AppUpdateService : IAppUpdateService
                 release.TagName,
                 release.AssetDownloadUrl);
 
-            await DownloadAssetAsync(release.AssetDownloadUrl, zipPath, cancellationToken);
+            try
+            {
+                await DownloadAssetAsync(release.AssetDownloadUrl, zipPath, cancellationToken);
+            }
+            catch
+            {
+                File.Delete(zipPath);
+                throw;
+            }
 
             var helperPath = ResolveApplyUpdateScriptPath();
             if (helperPath == null)
@@ -174,14 +185,15 @@ public sealed class AppUpdateService : IAppUpdateService
                 Path.DirectorySeparatorChar,
                 Path.AltDirectorySeparatorChar);
 
-            LaunchUpdater(helperPath, zipPath, installDir);
+            var port = _configuration.GetValue<int>("LocalMock:Port", 5183);
+            LaunchUpdater(helperPath, zipPath, installDir, $"http://localhost:{port}/ui/");
             _updateInProgress = true;
 
             return new UpdateStartResult
             {
                 Started = true,
                 StatusCode = 202,
-                Message = "Update started. The service will restart shortly.",
+                Message = "Update started. LocalMock will restart shortly.",
                 TargetVersion = AppVersion.Normalize(release.TagName)
             };
         }
@@ -246,27 +258,43 @@ public sealed class AppUpdateService : IAppUpdateService
         return candidates.FirstOrDefault(File.Exists);
     }
 
-    private void LaunchUpdater(string scriptPath, string zipPath, string installDir)
+    private void LaunchUpdater(string scriptPath, string zipPath, string installDir, string healthUrl)
     {
-        var arguments =
-            $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" " +
-            $"-ZipPath \"{zipPath}\" -InstallDir \"{installDir}\" -ServiceName \"LocalMock\" -DelaySeconds 3";
+        var temporaryScript = Path.Combine(Path.GetTempPath(), $"LocalMock-updater-{Guid.NewGuid():N}.ps1");
+        File.Copy(scriptPath, temporaryScript);
 
         var startInfo = new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = arguments,
             UseShellExecute = false,
             CreateNoWindow = true,
             WorkingDirectory = Path.GetTempPath()
         };
 
-        _logger.LogInformation("Launching update helper: powershell {Arguments}", arguments);
-
-        var process = Process.Start(startInfo);
-        if (process == null)
+        foreach (var argument in new[]
         {
-            throw new InvalidOperationException("Unable to start the update helper.");
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", temporaryScript,
+            "-ZipPath", zipPath, "-InstallDir", installDir,
+            "-AppProcessId", Environment.ProcessId.ToString(), "-HealthUrl", healthUrl
+        })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        _logger.LogInformation("Launching update helper for process {ProcessId}", Environment.ProcessId);
+
+        try
+        {
+            if (Process.Start(startInfo) == null)
+            {
+                throw new InvalidOperationException("Unable to start the update helper.");
+            }
+        }
+        catch
+        {
+            File.Delete(temporaryScript);
+            File.Delete(zipPath);
+            throw;
         }
     }
 }

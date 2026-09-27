@@ -115,38 +115,6 @@ textarea.code-editor-input {
     min-height: 100vh;
 }
 
-.update-banner {
-    flex-shrink: 0;
-    background: var(--accent-muted);
-    border-bottom: 1px solid var(--border-strong);
-    padding: 8px 20px;
-}
-
-.update-banner[hidden] {
-    display: none !important;
-}
-
-.update-banner-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.update-banner-text {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.update-banner-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .update-overlay {
     position: fixed;
     inset: 0;
@@ -307,6 +275,10 @@ html[data-theme="light"] .app-nav-item.is-active {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+}
+
+.app-topbar-actions .button[hidden] {
+    display: none;
 }
 
 .app-content {

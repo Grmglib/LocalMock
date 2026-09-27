@@ -10,7 +10,5 @@ public class UpdateOptions
 
     public string AssetName { get; set; } = "LocalMock-win-x64.zip";
 
-    public int CheckIntervalSeconds { get; set; } = 3600;
-
     public string? GitHubToken { get; set; }
 }

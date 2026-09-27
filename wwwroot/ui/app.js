@@ -95,17 +95,12 @@
     const apiBaseUrl = new URL("../mock", window.location.href);
     const collectionsApiUrl = new URL("../mock/collections", window.location.href);
     const versionApiUrl = new URL("../api/version", window.location.href);
+    const currentVersionApiUrl = new URL("../api/version/current", window.location.href);
     const updateApiUrl = new URL("../api/update", window.location.href);
     const themeStorageKey = "localmock-theme";
     const activeCollectionStorageKey = "localmock-active-collection";
     const activeScreenStorageKey = "localmock-active-screen";
-    const updateDismissedVersionKey = "localmock-dismissed-update-version";
-    const updateCheckIntervalMs = 10 * 60 * 1000;
-
-    const updateBanner = document.getElementById("update-banner");
-    const updateBannerText = document.getElementById("update-banner-text");
     const updateApplyButton = document.getElementById("update-apply-button");
-    const updateDismissButton = document.getElementById("update-dismiss-button");
     const updateOverlay = document.getElementById("update-overlay");
     const updateOverlayMessage = document.getElementById("update-overlay-message");
     const checkUpdateButton = document.getElementById("check-update-button");
@@ -2301,7 +2296,7 @@
     setupUpdateChecker();
 
     function setupUpdateChecker() {
-        if (!updateBanner || !updateApplyButton || !updateDismissButton) {
+        if (!updateApplyButton || !checkUpdateButton) {
             return;
         }
 
@@ -2310,7 +2305,7 @@
         async function checkForUpdates(options) {
             const manual = Boolean(options && options.manual);
 
-            if (manual && checkUpdateButton) {
+            if (manual) {
                 checkUpdateButton.disabled = true;
             }
 
@@ -2338,8 +2333,8 @@
                     appVersionLabel.title = "Installed version: " + currentVersion;
                 }
 
-                if (!updateAvailable || !latestVersion) {
-                    updateBanner.hidden = true;
+                updateApplyButton.hidden = !updateAvailable || !latestVersion;
+                if (updateApplyButton.hidden) {
                     if (manual) {
                         if (checkError) {
                             showToast("error", checkError);
@@ -2355,19 +2350,7 @@
                     return;
                 }
 
-                if (!manual) {
-                    const dismissed = localStorage.getItem(updateDismissedVersionKey);
-                    if (dismissed === latestVersion) {
-                        updateBanner.hidden = true;
-                        return;
-                    }
-                } else {
-                    localStorage.removeItem(updateDismissedVersionKey);
-                }
-
-                updateBannerText.textContent =
-                    "New version " + latestVersion + " available (current: " + currentVersion + ").";
-                updateBanner.hidden = false;
+                updateApplyButton.title = "Update LocalMock to version " + latestVersion;
 
                 if (manual) {
                     showToast("success", "New version " + latestVersion + " found.");
@@ -2377,7 +2360,7 @@
                     showToast("error", "Unable to check for updates.");
                 }
             } finally {
-                if (manual && checkUpdateButton) {
+                if (manual) {
                     checkUpdateButton.disabled = false;
                 }
             }
@@ -2392,7 +2375,7 @@
             }
         }
 
-        async function waitForServiceRestart() {
+        async function waitForAppRestart(targetVersion) {
             const startedAt = Date.now();
             const maxWaitMs = 120000;
             const pollMs = 2000;
@@ -2401,15 +2384,18 @@
 
             while (Date.now() - startedAt < maxWaitMs) {
                 try {
-                    const response = await fetch(versionApiUrl, {
+                    const response = await fetch(currentVersionApiUrl, {
                         headers: { Accept: "application/json" },
                         cache: "no-store"
                     });
                     if (response.ok) {
-                        return true;
+                        const status = await response.json();
+                        if (status.currentVersion === targetVersion || status.CurrentVersion === targetVersion) {
+                            return true;
+                        }
                     }
                 } catch (_error) {
-                    // Service still restarting.
+                    // LocalMock is still restarting.
                 }
 
                 await new Promise(function (resolve) { setTimeout(resolve, pollMs); });
@@ -2420,7 +2406,7 @@
 
         async function applyUpdate() {
             updateApplyButton.disabled = true;
-            showUpdateOverlay("Downloading and applying the new version. The service will restart.");
+            showUpdateOverlay("Downloading and applying the new version. LocalMock will restart.");
 
             try {
                 const response = await fetch(updateApiUrl, {
@@ -2436,9 +2422,9 @@
                     return;
                 }
 
-                showUpdateOverlay("Restarting the service… the page will reload automatically.");
+                showUpdateOverlay("Restarting LocalMock… the page will reload automatically.");
 
-                const recovered = await waitForServiceRestart();
+                const recovered = await waitForAppRestart(data.targetVersion || data.TargetVersion || latestKnownVersion);
                 if (recovered) {
                     window.location.reload();
                     return;
@@ -2446,36 +2432,25 @@
 
                 updateOverlay.hidden = true;
                 updateApplyButton.disabled = false;
-                showToast("error", "The update started, but the service took too long to come back. Reload the page manually.");
+                showToast("error", "The update started, but LocalMock took too long to come back. Reload the page manually.");
             } catch (_error) {
-                showUpdateOverlay("Waiting for the service to come back…");
-                const recovered = await waitForServiceRestart();
+                showUpdateOverlay("Waiting for LocalMock to come back…");
+                const recovered = latestKnownVersion && await waitForAppRestart(latestKnownVersion);
                 if (recovered) {
                     window.location.reload();
                     return;
                 }
-
                 updateOverlay.hidden = true;
                 updateApplyButton.disabled = false;
-                showToast("error", "Failed to track the update. Check the service and reload the page.");
+                showToast("error", "Failed to track the update. Check LocalMock and reload the page.");
             }
         }
 
         updateApplyButton.addEventListener("click", applyUpdate);
-        updateDismissButton.addEventListener("click", function () {
-            if (latestKnownVersion) {
-                localStorage.setItem(updateDismissedVersionKey, latestKnownVersion);
-            }
-            updateBanner.hidden = true;
+        checkUpdateButton.addEventListener("click", function () {
+            checkForUpdates({ manual: true });
         });
 
-        if (checkUpdateButton) {
-            checkUpdateButton.addEventListener("click", function () {
-                checkForUpdates({ manual: true });
-            });
-        }
-
         checkForUpdates();
-        setInterval(checkForUpdates, updateCheckIntervalMs);
     }
 })();

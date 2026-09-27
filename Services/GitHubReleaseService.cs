@@ -29,9 +29,6 @@ public sealed class GitHubReleaseService : IGitHubReleaseService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly UpdateOptions _options;
     private readonly ILogger<GitHubReleaseService> _logger;
-    private readonly object _cacheLock = new();
-    private GitHubLatestRelease? _cachedRelease;
-    private DateTimeOffset _cacheExpiresAt = DateTimeOffset.MinValue;
 
     public GitHubReleaseService(
         IHttpClientFactory httpClientFactory,
@@ -45,14 +42,6 @@ public sealed class GitHubReleaseService : IGitHubReleaseService
 
     public async Task<GitHubLatestRelease?> GetLatestReleaseAsync(CancellationToken cancellationToken = default)
     {
-        lock (_cacheLock)
-        {
-            if (_cachedRelease != null && DateTimeOffset.UtcNow < _cacheExpiresAt)
-            {
-                return _cachedRelease;
-            }
-        }
-
         if (string.IsNullOrWhiteSpace(_options.GitHubOwner) || string.IsNullOrWhiteSpace(_options.GitHubRepo))
         {
             _logger.LogWarning("GitHub owner/repo not configured for updates.");
@@ -66,6 +55,7 @@ public sealed class GitHubReleaseService : IGitHubReleaseService
 
         request.Headers.UserAgent.ParseAdd("LocalMock-Updater");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
         if (!string.IsNullOrWhiteSpace(_options.GitHubToken))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.GitHubToken);
@@ -95,7 +85,7 @@ public sealed class GitHubReleaseService : IGitHubReleaseService
             .FirstOrDefault(item =>
                 string.Equals(item.Name, _options.AssetName, StringComparison.OrdinalIgnoreCase));
 
-        var release = new GitHubLatestRelease
+        return new GitHubLatestRelease
         {
             TagName = payload.TagName,
             HtmlUrl = payload.HtmlUrl,
@@ -106,15 +96,6 @@ public sealed class GitHubReleaseService : IGitHubReleaseService
                 ? asset.Url
                 : asset?.BrowserDownloadUrl
         };
-
-        var cacheSeconds = Math.Max(60, _options.CheckIntervalSeconds);
-        lock (_cacheLock)
-        {
-            _cachedRelease = release;
-            _cacheExpiresAt = DateTimeOffset.UtcNow.AddSeconds(cacheSeconds);
-        }
-
-        return release;
     }
 
     private sealed class GitHubReleaseApiResponse

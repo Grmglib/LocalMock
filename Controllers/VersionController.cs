@@ -11,16 +11,25 @@ namespace LocalMock.Controllers;
 public class VersionController : ControllerBase
 {
     private readonly IAppUpdateService _appUpdateService;
+    private readonly IHostApplicationLifetime _lifetime;
 
-    public VersionController(IAppUpdateService appUpdateService)
+    public VersionController(IAppUpdateService appUpdateService, IHostApplicationLifetime lifetime)
     {
         _appUpdateService = appUpdateService;
+        _lifetime = lifetime;
+    }
+
+    [HttpGet("version/current")]
+    public IActionResult GetCurrentVersion()
+    {
+        return Ok(new { CurrentVersion = AppVersion.Current });
     }
 
     /// <summary>
     /// Returns the current version and whether an update is available on GitHub Releases.
     /// </summary>
     [HttpGet("version")]
+    [ResponseCache(NoStore = true)]
     [SwaggerOperation(
         Summary = "Version status",
         Description = "Compares the installed version with the latest GitHub release",
@@ -42,12 +51,12 @@ public class VersionController : ControllerBase
     }
 
     /// <summary>
-    /// Starts a full update from the GitHub Release (replaces binaries and restarts the service).
+    /// Starts a full update from the GitHub Release (replaces binaries and restarts the app).
     /// </summary>
     [HttpPost("update")]
     [SwaggerOperation(
         Summary = "Update application",
-        Description = "Downloads the latest release asset and applies the update by restarting the service",
+        Description = "Downloads the latest release asset and applies the update by restarting the app",
         OperationId = "StartUpdate",
         Tags = new[] { "Version" })]
     [SwaggerResponse(202, "Update started")]
@@ -62,6 +71,15 @@ public class VersionController : ControllerBase
             Message = result.Message,
             TargetVersion = result.TargetVersion
         };
+
+        if (result.Started)
+        {
+            Response.OnCompleted(() =>
+            {
+                _lifetime.StopApplication();
+                return Task.CompletedTask;
+            });
+        }
 
         return StatusCode(result.StatusCode, body);
     }

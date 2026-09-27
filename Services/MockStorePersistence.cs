@@ -25,7 +25,10 @@ internal static class MockStorePersistence
             return Path.IsPathRooted(path) ? path : Path.Combine(hostEnvironment.ContentRootPath, path);
         }
 
-        return Path.Combine(hostEnvironment.ContentRootPath, "mocks.json");
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LocalMock",
+            "mocks.json");
     }
 
     internal static MockStore ReadStore(string filePath, ILogger? logger = null)

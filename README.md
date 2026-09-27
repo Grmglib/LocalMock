@@ -4,8 +4,9 @@ LocalMock is a local HTTP mock server built with ASP.NET Core 8. It lets you def
 
 ## Requirements
 
+- Windows x64 with the .NET 8 Desktop Runtime and ASP.NET Core Runtime to run the published app
 - .NET 8 SDK to build and run from source
-- Windows and PowerShell 5.1 or later for the optional Windows service scripts
+- PowerShell 5.1 or later for automatic updates
 
 ## Quick start
 
@@ -13,7 +14,7 @@ LocalMock is a local HTTP mock server built with ASP.NET Core 8. It lets you def
 dotnet run --project LocalMock.csproj
 ```
 
-The server listens on `http://localhost:5183` by default. Open the [mock manager](http://localhost:5183/ui/) or [Swagger UI](http://localhost:5183/swagger) in a browser.
+The server listens on `http://localhost:5183` by default and opens the [mock manager](http://localhost:5183/ui/) in your browser. Closing the browser tab leaves LocalMock running; use **Exit** in the Windows tray to stop it. The [Swagger UI](http://localhost:5183/swagger) remains available.
 
 Create and call a standalone mock:
 
@@ -82,27 +83,21 @@ Requests are matched by method, path, and collection. Query strings are not part
 | `GET`, `POST` | `/mock/collections` | List or create collections. |
 | `PATCH`, `DELETE` | `/mock/collections/{id}` | Update a collection's bypass URL or delete the collection and its mocks. |
 | `GET` | `/api/version` | Check the installed version and latest GitHub release. |
+| `GET` | `/api/version/current` | Read the installed version without contacting GitHub. |
 | `POST` | `/api/update` | Start an update from the configured GitHub release asset. |
 
 See `/swagger` for request schemas and response details.
 
 ## Configuration and storage
 
-Settings are in `appsettings.json` and can be overridden with standard ASP.NET Core configuration sources. The main settings are `LocalMock:Port` (default `5183`), `Mock:FilePath` (default `mocks.json` relative to the content root), and `LocalMock:Updates` (GitHub owner, repository, release asset name, check interval, and optional token).
+Settings are in `appsettings.json` and can be overridden with standard ASP.NET Core configuration sources. The main settings are `LocalMock:Port` (default `5183`), `Mock:FilePath` (optional override), and `LocalMock:Updates` (GitHub owner, repository, release asset name, and optional token).
 
-Mocks and collections are saved together in the configured JSON file. When installed as a Windows service, the app stores them at `%ProgramData%\LocalMock\mocks.json` regardless of the `Mock:FilePath` setting. The server binds to `localhost`, so it is intended for access from the same machine.
+Mocks and collections are saved together in `%LocalAppData%\LocalMock\mocks.json` by default. An explicit `Mock:FilePath` overrides this location; relative paths are resolved from the application folder. The server binds to `localhost`, so it is intended for access from the same machine.
 
-## Windows service
+## Portable Windows app
 
-Run these scripts in an elevated PowerShell session:
+Download `LocalMock-win-x64.zip`, extract it into a folder you can write to, and run `LocalMock.exe`. Keep the files from the ZIP together. No administrator rights or service registration are needed. Running the EXE again opens the existing instance's manager page.
 
-```powershell
-.\scripts\publish.ps1
-.\scripts\install-service.ps1
-```
+To build the same ZIP from source, run `.\scripts\publish.ps1`. It creates `artifacts\publish` and `artifacts\LocalMock-win-x64.zip` using a framework-dependent publication.
 
-The publish script creates `artifacts\publish` and `artifacts\LocalMock-win-x64.zip`. The install script copies the published files to `C:\Program Files\LocalMock`, registers an automatically starting `LocalMock` service, and keeps its data under `%ProgramData%\LocalMock`.
-
-To uninstall the service, run `.\scripts\uninstall-service.ps1`. It preserves the data directory unless you pass `-RemoveData`.
-
-The UI can check GitHub Releases for updates. The update endpoint expects a release asset named `LocalMock-win-x64.zip` by default and uses the bundled `apply-update.ps1` script to replace the installed files and restart the service.
+The UI checks GitHub Releases when opened and when you click the check button. If a newer release contains `LocalMock-win-x64.zip`, an **Update** button appears beside it. Applying the update replaces the extracted application files, then restarts LocalMock in the tray. The open page reloads when the new version is ready. Update logs are written to `%TEMP%\LocalMock-update.log`.

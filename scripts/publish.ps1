@@ -1,8 +1,6 @@
 #Requires -Version 5.1
 param(
-    [string]$Configuration = "Release",
-    [string]$Runtime = "win-x64",
-    [switch]$SelfContained
+    [string]$Configuration = "Release"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,7 +9,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $publishDir = Join-Path $repoRoot "artifacts\publish"
 $zipPath = Join-Path $repoRoot "artifacts\LocalMock-win-x64.zip"
 
-Write-Host "Publishing LocalMock ($Configuration, $Runtime)..."
+Write-Host "Publishing LocalMock ($Configuration, win-x64, framework-dependent)..."
 
 if (Test-Path $publishDir) {
     Remove-Item $publishDir -Recurse -Force
@@ -21,14 +19,21 @@ New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
 $publishArgs = @(
     "publish", (Join-Path $repoRoot "LocalMock.csproj"),
     "-c", $Configuration,
-    "-r", $Runtime,
-    "--self-contained", $(if ($SelfContained) { "true" } else { "false" }),
+    "-r", "win-x64",
+    "--self-contained", "false",
     "-o", $publishDir
 )
 
 dotnet @publishArgs
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
+
+foreach ($name in @("mocks.json", "appsettings.Development.json", "nuget.config", "web.config")) {
+    $unwanted = Join-Path $publishDir $name
+    if (Test-Path -LiteralPath $unwanted) {
+        Remove-Item -LiteralPath $unwanted -Force
+    }
 }
 
 if (Test-Path $zipPath) {
