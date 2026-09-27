@@ -48,7 +48,7 @@ export function validHttpUrl(value) {
 
 export function buildMockUrl(path, collection = '') {
   const prefix = collection ? `/mock/${encodeURIComponent(collection)}` : '/mock'
-  return new URL(`${prefix}${normalizePath(path)}`, window.location.origin).toString()
+  return new URL(`${prefix}${normalizePath(path)}`, window.location.origin).toString().replace(/\/$/, '')
 }
 
 export function buildCollectionUrl(id) {

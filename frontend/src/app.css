@@ -1121,7 +1121,7 @@ html[data-theme="light"] .code-editor-input--compact {
 .response-section {
     margin-top: 4px;
     padding-top: 12px;
-    border-top: 1px solid var(--border);
+    border-top: 0;
 }
 
 .response-stats {
@@ -1832,4 +1832,121 @@ html[data-theme="light"] .code-editor-input--compact { color: var(--text); backg
 
 @media (max-width: 900px) {
     #screen-collections { inset-inline-start: 0; }
+}
+
+.locale-picker { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: .72rem; }
+.locale-picker select { max-width: 150px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); }
+.mobile-endpoints-toggle { display: none; }
+.mock-list-item-actions { align-items: center; opacity: 1; }
+.mock-list-item-actions .endpoint-action { opacity: .8; }
+.mock-list-item-actions .endpoint-action:hover { opacity: 1; }
+.mock-actions-menu { position: relative; }
+.mock-actions-menu > summary { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; list-style: none; cursor: pointer; }
+.mock-actions-menu > summary::-webkit-details-marker { display: none; }
+.mock-actions-menu[open] > summary { color: var(--accent); background: var(--accent-muted); border-radius: var(--radius-sm); }
+.mock-actions-popover { position: absolute; z-index: 30; right: 0; top: calc(100% + 4px); display: grid; min-width: 170px; padding: 5px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-panel); box-shadow: var(--shadow-md); }
+.mock-actions-popover button { padding: 8px 10px; border: 0; border-radius: 4px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.mock-actions-popover button:hover, .mock-actions-popover button:focus-visible { background: var(--bg-panel-elevated); }
+.mock-actions-popover button.is-danger { color: var(--error); }
+.response-origin--mock { color: var(--success); }
+.response-origin--bypass { color: var(--warning); }
+.response-headers { position: relative; margin: 12px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel-elevated); }
+.response-headers summary { padding: 10px 12px; color: var(--text); font-weight: 600; cursor: pointer; }
+.response-headers summary span { margin-left: 6px; color: var(--text-dim); font-size: .75rem; }
+.response-headers > button { margin: 0 12px 8px; }
+.response-headers dl { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(0, 1fr); gap: 0; margin: 0; padding: 0 12px 10px; font: .78rem var(--font-mono); }
+.response-headers dt, .response-headers dd { min-width: 0; margin: 0; padding: 6px 4px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+.response-headers dt { color: var(--accent); }
+.response-headers dd { color: var(--text-muted); }
+.modal-description { margin: 5px 0 0; color: var(--text-muted); font-size: .82rem; }
+.import-export-modal .modal-content { display: flex; flex-direction: column; width: min(820px, calc(100vw - 24px)); max-height: min(82vh, 760px); overflow: hidden; }
+.import-export-modal .modal-header { align-items: flex-start; }
+.import-export-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: .8rem; }
+.import-export-toolbar > div { display: flex; gap: 6px; }
+.import-export-list { overflow: auto; min-height: 140px; }
+.import-export-group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.import-export-group-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; background: var(--bg-panel-elevated); }
+.import-export-item { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 8px 12px; border-top: 1px solid var(--border); color: var(--text); font-size: .82rem; }
+.import-export-group-heading .import-export-item { padding: 0; border: 0; }
+.import-export-item input, .import-export-replace input { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
+.import-export-item code { min-width: 0; overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.import-export-status { margin-left: auto; color: var(--text-dim); font-size: .72rem; white-space: nowrap; }
+.import-export-replace { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: .72rem; }
+.import-export-mock .import-export-replace { margin-left: 6px; }
+.import-export-footer { margin-top: auto; }
+
+@media (max-width: 900px) {
+    .mobile-endpoints-toggle { display: inline-flex; }
+    .mocks-sidebar:not(.is-mobile-open) { display: none; }
+    .mocks-sidebar.is-mobile-open { width: 100%; max-height: min(55vh, 420px); min-height: 0; overflow: hidden; }
+    .mocks-sidebar.is-mobile-open .mock-list { max-height: 34vh; }
+    .app-screen.is-active:has(.mocks-sidebar:not(.is-mobile-open)) .app-main { width: 100%; }
+}
+
+@media (max-width: 600px) {
+    .mocks-sidebar { max-height: min(55vh, 420px); }
+    .app-topbar-actions { flex-wrap: wrap; }
+    .locale-picker span { display: none; }
+    .locale-picker select { max-width: 112px; }
+    .import-export-toolbar { align-items: flex-start; flex-direction: column; }
+    .import-export-item { flex-wrap: wrap; }
+    .import-export-status { margin-left: 0; }
+}
+
+/* Keep the primary action beside clear and show the response next to request input. */
+.mock-config-panel .panel-head-actions,
+.mock-test-panel .panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (min-width: 901px) {
+    .test-form {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+        align-items: start;
+        gap: 24px;
+    }
+
+    .test-form > .test-request-fields {
+        grid-column: 1;
+        min-width: 0;
+    }
+
+    .test-form > .response-section {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .test-form > .test-request-fields,
+    .test-form > .response-section {
+        grid-column: 1;
+    }
+}
+
+@media (min-width: 1320px) {
+    .mock-config-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+        align-items: start;
+        column-gap: 28px;
+    }
+
+    .mock-config-panel > .panel-head,
+    .mock-config-panel > .feedback {
+        grid-column: 1 / -1;
+    }
+
+    .mock-config-panel > .mock-setup-fields {
+        grid-column: 1;
+        min-width: 0;
+    }
+
+    .mock-config-panel > .mock-response-fields {
+        grid-column: 2;
+        min-width: 0;
+    }
 }

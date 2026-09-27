@@ -49,6 +49,7 @@ namespace LocalMock
 
             builder.Services.AddSingleton<IMockStoreRepository, MockStoreRepository>();
             builder.Services.AddSingleton<IMockService, MockService>();
+            builder.Services.AddSingleton<MockImportService>();
             builder.Services.AddSingleton<ICollectionService, CollectionService>();
             builder.Services.AddHttpForwarder();
             builder.Services.AddSingleton<IBypassProxyService, BypassProxyService>();

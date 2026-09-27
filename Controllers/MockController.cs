@@ -17,15 +17,18 @@ namespace LocalMock.Controllers
         private readonly IMockService _mockService;
         private readonly ICollectionService _collectionService;
         private readonly IBypassProxyService _bypassProxyService;
+        private readonly MockImportService _mockImportService;
 
         public MockController(
             IMockService mockService,
             ICollectionService collectionService,
-            IBypassProxyService bypassProxyService)
+            IBypassProxyService bypassProxyService,
+            MockImportService mockImportService)
         {
             _mockService = mockService;
             _collectionService = collectionService;
             _bypassProxyService = bypassProxyService;
+            _mockImportService = mockImportService;
         }
 
         /// <summary>
@@ -99,6 +102,30 @@ namespace LocalMock.Controllers
         {
             var list = await _mockService.ListAsync(collection, cancellationToken);
             return Ok(list);
+        }
+
+        [HttpPost("import")]
+        [SwaggerOperation(Summary = "Import selected mocks and collections atomically")]
+        [SwaggerResponse(200, "Selected records imported")]
+        [SwaggerResponse(400, "Import validation failed")]
+        [SwaggerResponse(409, "A record changed or conflicts with existing data")]
+        public IActionResult Import([FromBody] ImportBatchRequest request)
+        {
+            if (request?.Collections == null || request.Mocks == null ||
+                request.Collections.Any(item => item == null) || request.Mocks.Any(item => item == null || item.Mock == null))
+            {
+                return BadRequest(new { message = "Collections and mocks must be valid arrays." });
+            }
+
+            var (result, error) = _mockImportService.Import(request);
+            if (error != null)
+            {
+                return error.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
+                       error.Contains("Select replace", StringComparison.OrdinalIgnoreCase)
+                    ? Conflict(new { message = error })
+                    : BadRequest(new { message = error });
+            }
+            return Ok(result);
         }
 
         /// <summary>
@@ -359,6 +386,7 @@ namespace LocalMock.Controllers
 
         private async Task<IActionResult> ServeMockEntry(MockEntry entry, CancellationToken cancellationToken)
         {
+            Response.Headers["X-LocalMock-Source"] = "mock";
             if (entry.ResponseDelayMs > 0)
             {
                 await Task.Delay(entry.ResponseDelayMs, cancellationToken);

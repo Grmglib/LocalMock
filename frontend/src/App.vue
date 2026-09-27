@@ -2,17 +2,23 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from './api.js'
 import {
-  buildMockUrl, collectionId, entryKey, formatResponseText, getBypassEnabled,
-  getEnabled, normalizeEntry, normalizePath, parseCurl, parseHeaders,
-  parseRequestBody, parseResponseBody, responseBodyText, toFileEntry, validHttpUrl,
+  buildMockUrl, collectionId, entryKey, getBypassEnabled,
+  normalizeEntry, normalizePath, parseCurl,
+  parseResponseBody, responseBodyText, validHttpUrl,
 } from './domain.js'
 import CollectionTree from './components/CollectionTree.vue'
 import MockEditor from './components/MockEditor.vue'
 import RequestTester from './components/RequestTester.vue'
 import CollectionEditor from './components/CollectionEditor.vue'
 import CurlImportModal from './components/CurlImportModal.vue'
+import ImportExportDialog from './components/ImportExportDialog.vue'
+import { useLocale } from './useLocale.js'
+import { useImportExport } from './composables/useImportExport.js'
+import { useRequestTester } from './composables/useRequestTester.js'
+import { useUpdateManager } from './composables/useUpdateManager.js'
 
 const savedCollection = localStorage.getItem('localmock-active-collection') || ''
+const { locale, t, setLocale } = useLocale()
 const savedTheme = localStorage.getItem('localmock-theme-v2')
 const theme = ref(savedTheme === 'light' ? 'light' : 'dark')
 const mocks = ref([])
@@ -27,16 +33,18 @@ const savingMock = ref(false)
 const enabledBusy = ref(false)
 const mockFeedback = ref('')
 const mockFeedbackError = ref(false)
-const testForm = reactive({ method: 'GET', path: '', collection: savedCollection, contentType: 'application/json', headers: '', body: '' })
-const testResponse = reactive({ status: '', statusCode: 0, contentType: '', time: '', body: null, error: '' })
-const runningTest = ref(false)
-const testFeedback = ref('')
-const testFeedbackError = ref(false)
+const test = useRequestTester({ api, activeCollection, t })
+const testForm = test.form
+const testResponse = test.response
+const runningTest = test.running
+const testFeedback = test.feedback
+const testFeedbackError = test.feedbackError
 const search = ref('')
 const methodFilter = ref('')
 const statusFilter = ref('')
 const listFeedback = ref('')
 const listFeedbackError = ref(false)
+const mobileSidebarOpen = ref(false)
 const collectionPaneOpen = ref(false)
 const collectionEditingId = ref('')
 const collectionForm = reactive({ id: '', bypassUrl: '' })
@@ -49,17 +57,14 @@ const collectionCount = ref(0)
 const curlOpen = ref(false)
 const curlCommand = ref('')
 const curlError = ref('')
-const importFile = ref(null)
 const toasts = ref([])
-const appVersion = ref('v…')
-const updateAvailable = ref(false)
-const latestVersion = ref('')
-const checkingUpdate = ref(false)
-const updateOverlay = reactive({ visible: false, message: 'LocalMock will restart. Please wait.' })
+const updates = useUpdateManager({ api, t, toast })
+const { appVersion, updateAvailable, checking: checkingUpdate, overlay: updateOverlay } = updates
+const transfer = useImportExport({ api, currentMocks: mocks, currentCollections: collections, refresh, toast, t })
+const { open: transferOpen, mode: transferMode, collections: transferCollections, mocks: transferMocks, working: transferWorking, error: transferError, fileInput: importFile } = transfer
 
 const isCollectionEditing = computed(() => Boolean(collectionEditingId.value))
-const collectionUrl = computed(() => collectionForm.id ? new URL(`/mock/${encodeURIComponent(collectionForm.id)}`, window.location.origin).toString() : '—')
-const endpointTitle = computed(() => form.path ? `${form.method} ${normalizePath(form.path)}` : 'New endpoint')
+const endpointTitle = computed(() => form.path ? `${form.method} ${normalizePath(form.path)}` : t('newEndpoint'))
 const matchingMock = computed(() => mocks.value.find((entry) => entryKey(entry) === editingKey.value))
 
 function blankMock(collection = '') {
@@ -90,9 +95,9 @@ async function copyText(value) {
   if (!value || value === '—') return
   try {
     await navigator.clipboard.writeText(value)
-    toast('Copied to clipboard.')
+    toast(t('copied'))
   } catch {
-    toast('Could not access the clipboard.', true)
+    toast(t('clipboardError'), true)
   }
 }
 
@@ -112,7 +117,7 @@ async function refresh() {
     listFeedback.value = ''
     listFeedbackError.value = false
   } catch (error) {
-    listFeedback.value = `Failed to load endpoints: ${error.message}`
+    listFeedback.value = t('loadEndpointsFailed', { message: error.message })
     listFeedbackError.value = true
   }
 }
@@ -132,6 +137,7 @@ function toggleGroup(id) {
 }
 
 function resetMockForm(collection = activeCollection.value) {
+  mobileSidebarOpen.value = false
   collectionPaneOpen.value = false
   activeCollection.value = collection
   localStorage.setItem('localmock-active-collection', collection)
@@ -145,6 +151,7 @@ function resetMockForm(collection = activeCollection.value) {
 }
 
 function fillMock(entry) {
+  mobileSidebarOpen.value = false
   collectionPaneOpen.value = false
   const mock = normalizeEntry(entry)
   Object.assign(form, { ...mock, statusCode: String(mock.statusCode), responseDelayMs: String(mock.responseDelayMs), responseBody: responseBodyText(mock) })
@@ -170,25 +177,8 @@ function duplicateMock(entry) {
 
 function useMockForTest(entry) {
   collectionPaneOpen.value = false
-  const mock = normalizeEntry(entry)
-  testForm.method = mock.method
-  testForm.path = mock.path
-  testForm.collection = mock.collection
-  testForm.contentType = 'application/json'
-  testForm.headers = ''
-  testForm.body = ''
-  resetResponse()
+  test.useMock(entry)
   activeTab.value = 'test'
-}
-
-function resetResponse() {
-  Object.assign(testResponse, { status: '', statusCode: 0, contentType: '', time: '', body: null, error: '' })
-  testFeedback.value = ''
-}
-
-function resetTest() {
-  Object.assign(testForm, { method: 'GET', path: '', collection: activeCollection.value, contentType: 'application/json', headers: '', body: '' })
-  resetResponse()
 }
 
 async function toggleEnabled(entry, enabled) {
@@ -200,10 +190,10 @@ async function toggleEnabled(entry, enabled) {
       form.enabled = enabled
       dirty.value = wasDirty
     }
-    listFeedback.value = enabled ? 'Mock enabled.' : 'Mock disabled (collection bypass).'
+    listFeedback.value = enabled ? t('mockEnabled') : t('mockDisabled')
     listFeedbackError.value = false
   } catch (error) {
-    listFeedback.value = `Failed to update mock: ${error.message}`
+    listFeedback.value = t('updateMockFailed', { message: error.message })
     listFeedbackError.value = true
   }
 }
@@ -224,7 +214,7 @@ async function onFormEnabled(enabled) {
     form.enabled = enabled
   } catch (error) {
     form.enabled = savedValue
-    toast(`Could not update mock: ${error.message}`, true)
+    toast(t('updateMockFailed', { message: error.message }), true)
   } finally {
     enabledBusy.value = false
   }
@@ -234,16 +224,16 @@ async function toggleBypass(entry) {
   const enabled = !getBypassEnabled(entry)
   if (enabled && !validHttpUrl(entry.bypassUrl)) {
     fillMock(entry)
-    mockFeedback.value = 'Set a valid bypass URL before enabling.'
+    mockFeedback.value = t('validBypassBeforeEnable')
     mockFeedbackError.value = true
     return
   }
   try {
     await api.setBypass(entry, enabled, entry.bypassUrl)
     await refresh()
-    toast(enabled ? 'Bypass enabled.' : 'Bypass disabled.')
+    toast(enabled ? t('bypassEnabled') : t('bypassDisabled'))
   } catch (error) {
-    toast(`Could not update bypass: ${error.message}`, true)
+    toast(t('updateBypassFailed', { message: error.message }), true)
   }
 }
 
@@ -251,13 +241,13 @@ async function saveMock() {
   const path = normalizePath(form.path)
   const statusCode = Number(form.statusCode)
   const responseDelayMs = Number(form.responseDelayMs || 0)
-  if (!form.path.trim()) return showMockError('Enter the endpoint path.')
-  if (!form.collection && form.bypassEnabled && !validHttpUrl(form.bypassUrl)) return showMockError('Enter a valid bypass URL (HTTP/HTTPS).')
-  if (!Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599) return showMockError('Enter a valid status code between 100 and 599.')
-  if (!Number.isFinite(responseDelayMs) || responseDelayMs < 0) return showMockError('Enter a valid delay in milliseconds, greater than or equal to zero.')
+  if (!form.path.trim()) return showMockError(t('endpointPathRequired'))
+  if (!form.collection && form.bypassEnabled && !validHttpUrl(form.bypassUrl)) return showMockError(t('validBypassRequired'))
+  if (!Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599) return showMockError(t('validStatusRequired'))
+  if (!Number.isFinite(responseDelayMs) || responseDelayMs < 0) return showMockError(t('validDelayRequired'))
   let responseBody
   try { responseBody = parseResponseBody(form.responseBody.trim(), form.responseContentType) }
-  catch (error) { return showMockError(`Invalid response body: ${error.message}`) }
+  catch (error) { return showMockError(t('invalidResponseBody', { message: error.message })) }
 
   const payload = {
     method: form.method,
@@ -277,9 +267,9 @@ async function saveMock() {
     await api.saveMock(payload)
     await refresh()
     fillMock({ ...payload, collection: form.collection })
-    mockFeedback.value = 'Mock saved successfully.'
+    mockFeedback.value = t('mockSaved')
   } catch (error) {
-    showMockError(`Failed to save: ${error.message}`)
+    showMockError(t('saveMockFailed', { message: error.message }))
   } finally {
     savingMock.value = false
   }
@@ -291,76 +281,22 @@ function showMockError(message) {
 }
 
 async function deleteMock(entry) {
-  if (!window.confirm(`Delete ${entry.method} ${entry.path}?`)) return
+  if (!window.confirm(t('confirmDeleteMock', { method: entry.method, path: entry.path }))) return
   try {
     await api.removeMock(entry)
     if (entryKey(entry) === editingKey.value) resetMockForm()
     await refresh()
-    toast('Mock deleted.')
+    toast(t('mockDeleted'))
   } catch (error) {
-    toast(`Could not delete mock: ${error.message}`, true)
+    toast(t('deleteMockFailed', { message: error.message }), true)
   }
 }
 
-async function runTest() {
-  if (!testForm.path.trim()) {
-    testFeedback.value = 'Enter the path to call.'
-    testFeedbackError.value = true
-    return
-  }
-  if (testForm.method === 'GET' && testForm.body.trim()) {
-    testFeedback.value = 'GET requests must not include a body.'
-    testFeedbackError.value = true
-    return
-  }
-
-  let headers
-  let body
-  try {
-    headers = parseHeaders(testForm.headers)
-    body = parseRequestBody(testForm.body.trim(), testForm.contentType)
-  } catch (error) {
-    testFeedback.value = `Invalid request: ${error.message}`
-    testFeedbackError.value = true
-    return
-  }
-  if (body !== null && testForm.contentType !== 'multipart/form-data') headers['Content-Type'] = testForm.contentType
-
-  runningTest.value = true
-  testFeedback.value = ''
-  Object.assign(testResponse, { status: '…', statusCode: 0, contentType: '', time: '', body: null, error: '' })
-  const start = performance.now()
-  try {
-    const response = await api.run(buildMockUrl(testForm.path, testForm.collection), {
-      method: testForm.method,
-      headers,
-      ...(body === null ? {} : { body }),
-    })
-    const text = await response.text()
-    const contentType = response.headers.get('content-type') || 'not specified'
-    Object.assign(testResponse, {
-      status: `${response.status} ${response.statusText}`,
-      statusCode: response.status,
-      contentType,
-      time: `${Math.round(performance.now() - start)} ms`,
-      body: formatResponseText(text, contentType),
-      error: '',
-    })
-    testFeedback.value = response.ok ? `Request completed in ${testResponse.time}.` : `The request returned ${response.status}.`
-    testFeedbackError.value = !response.ok
-  } catch (error) {
-    testResponse.status = 'Failed'
-    testResponse.statusCode = 0
-    testResponse.time = `${Math.round(performance.now() - start)} ms`
-    testResponse.error = error.message
-    testFeedback.value = `Execution failed: ${error.message}`
-    testFeedbackError.value = true
-  } finally {
-    runningTest.value = false
-  }
-}
+const runTest = test.run
+const resetTest = test.reset
 
 function openNewCollection() {
+  mobileSidebarOpen.value = false
   collectionEditingId.value = ''
   Object.assign(collectionForm, { id: '', bypassUrl: '' })
   Object.assign(collectionErrors, { id: '', bypassUrl: '' })
@@ -390,13 +326,13 @@ async function saveCollection() {
   collectionErrors.bypassUrl = ''
   collectionFeedback.value = ''
 
-  if (!id) collectionErrors.id = 'Enter a collection ID.'
-  else if (!/^[a-zA-Z0-9_-]+$/.test(id)) collectionErrors.id = 'Use only letters, numbers, underscores, and hyphens.'
-  else if (['collections', 'bypass', 'enabled'].includes(id.toLowerCase())) collectionErrors.id = 'This collection ID is reserved.'
-  else if (!isCollectionEditing.value && collections.value.some((item) => collectionLabel(item) === id)) collectionErrors.id = 'A collection with this ID already exists.'
+  if (!id) collectionErrors.id = t('collectionIdRequired')
+  else if (!/^[a-zA-Z0-9_-]+$/.test(id)) collectionErrors.id = t('collectionIdFormat')
+  else if (['collections', 'bypass', 'enabled'].includes(id.toLowerCase())) collectionErrors.id = t('collectionIdReserved')
+  else if (!isCollectionEditing.value && collections.value.some((item) => collectionLabel(item) === id)) collectionErrors.id = t('collectionIdExists')
 
-  if (!bypassUrl) collectionErrors.bypassUrl = 'Enter a base URL.'
-  else if (!validHttpUrl(bypassUrl)) collectionErrors.bypassUrl = 'Enter a valid HTTP or HTTPS URL, such as https://api.example.com.'
+  if (!bypassUrl) collectionErrors.bypassUrl = t('baseUrlRequired')
+  else if (!validHttpUrl(bypassUrl)) collectionErrors.bypassUrl = t('validHttpUrlRequired')
 
   if (collectionErrors.id || collectionErrors.bypassUrl) {
     return
@@ -410,10 +346,10 @@ async function saveCollection() {
     localStorage.setItem('localmock-active-collection', id)
     collectionEditingId.value = id
     collectionDirty.value = false
-    collectionFeedback.value = 'Collection saved successfully.'
+    collectionFeedback.value = t('collectionSaved')
     collectionFeedbackError.value = false
   } catch (error) {
-    collectionFeedback.value = `Failed to save collection: ${error.message}`
+    collectionFeedback.value = t('saveCollectionFailed', { message: error.message })
     collectionFeedbackError.value = true
   } finally {
     collectionSaving.value = false
@@ -436,16 +372,16 @@ function onCollectionFieldInput(field) {
 
 async function deleteCollection() {
   const id = collectionEditingId.value
-  if (!id || !window.confirm(`Delete collection “${id}” and its mocks?`)) return
+  if (!id || !window.confirm(t('confirmDeleteCollection', { id }))) return
   try {
     await api.removeCollection(id)
     collectionPaneOpen.value = false
     if (activeCollection.value === id) activeCollection.value = ''
     if (form.collection === id) resetMockForm()
     await refresh()
-    toast('Collection and its mocks deleted.')
+    toast(t('collectionDeleted'))
   } catch (error) {
-    collectionFeedback.value = `Could not delete collection: ${error.message}`
+    collectionFeedback.value = t('deleteCollectionFailed', { message: error.message })
     collectionFeedbackError.value = true
   }
 }
@@ -475,155 +411,62 @@ function applyCurlImport() {
     if (parsed.body !== null) testForm.body = parsed.body
     curlOpen.value = false
     curlError.value = ''
-    testFeedback.value = 'cURL imported successfully.'
+    testFeedback.value = t('importedCurl')
     testFeedbackError.value = false
   } catch (error) {
     curlError.value = error.message
   }
 }
 
-function exportMocks() {
-  const payload = {
-    Collections: collections.value.map((collection) => ({ Id: collectionLabel(collection), BypassUrl: collectionBypass(collection) })),
-    Mocks: mocks.value.map(toFileEntry),
-  }
-  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = 'localmock-export.json'
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
-
-async function importMocks(event) {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-  if (!file) return
-  try {
-    const data = JSON.parse(await file.text())
-    const collectionData = data.Collections ?? data.collections ?? []
-    const mockData = data.Mocks ?? data.mocks ?? (Array.isArray(data) ? data : [])
-    for (const collection of collectionData) {
-      const id = String(collection.Id ?? collection.id ?? '').trim()
-      if (id && !collections.value.some((item) => collectionLabel(item) === id)) {
-        await api.createCollection({ id, bypassUrl: collection.BypassUrl ?? collection.bypassUrl ?? '' })
-      }
-    }
-    for (const raw of mockData) {
-      const mock = normalizeEntry(raw)
-      const payload = {
-        method: mock.method,
-        path: mock.path,
-        statusCode: mock.statusCode,
-        responseDelayMs: mock.responseDelayMs,
-        responseContentType: mock.responseContentType,
-        responseBody: mock.responseBody,
-        enabled: mock.enabled,
-        bypassEnabled: mock.bypassEnabled,
-        bypassUrl: mock.bypassUrl,
-      }
-      if (mock.collection) payload.collection = mock.collection
-      await api.saveMock(payload)
-    }
-    await refresh()
-    toast(`Imported ${mockData.length} mock(s).`)
-  } catch (error) {
-    toast(`Import failed: ${error.message}`, true)
-  }
-}
-
-async function checkUpdate() {
-  checkingUpdate.value = true
-  try {
-    const status = await api.version()
-    appVersion.value = `v${status.currentVersion ?? status.CurrentVersion ?? '…'}`
-    latestVersion.value = status.latestVersion ?? status.LatestVersion ?? ''
-    updateAvailable.value = Boolean(status.updateAvailable ?? status.UpdateAvailable)
-    if (status.error ?? status.Error) toast(`Update check failed: ${status.error ?? status.Error}`, true)
-  } catch (error) {
-    try {
-      const version = await api.currentVersion()
-      appVersion.value = `v${version.currentVersion ?? version.CurrentVersion ?? '…'}`
-    } catch { appVersion.value = 'v…' }
-    toast(`Could not check for updates: ${error.message}`, true)
-  } finally {
-    checkingUpdate.value = false
-  }
-}
-
-async function applyUpdate() {
-  updateOverlay.visible = true
-  updateOverlay.message = 'LocalMock is downloading the update and will restart.'
-  try {
-    const result = await api.startUpdate()
-    const target = result.targetVersion ?? result.TargetVersion
-    if (!(result.started ?? result.Started)) throw new Error(result.message ?? result.Message ?? 'Update could not be started.')
-    updateOverlay.message = `Installing ${target ? `v${target}` : 'the update'}…`
-    for (let attempt = 0; attempt < 45; attempt += 1) {
-      await new Promise((resolve) => window.setTimeout(resolve, 2000))
-      try {
-        const version = await api.currentVersion()
-        const current = version.currentVersion ?? version.CurrentVersion
-        if (target && current === target) {
-          window.location.reload()
-          return
-        }
-      } catch { /* The local server is restarting. */ }
-    }
-    updateOverlay.message = 'The update is taking longer than expected. Reload this page in a moment.'
-  } catch (error) {
-    updateOverlay.visible = false
-    toast(`Update failed: ${error.message}`, true)
-  }
-}
-
 onMounted(() => {
   document.documentElement.dataset.theme = theme.value
+  setLocale(locale.value)
   refresh()
-  checkUpdate()
+  updates.check()
 })
 </script>
 
 <template>
   <div class="app-shell">
-    <div v-if="updateOverlay.visible" class="update-overlay" aria-live="assertive">
-      <div class="update-overlay-card"><p class="update-overlay-title">Updating…</p><p class="update-overlay-message">{{ updateOverlay.message }}</p></div>
+      <div v-if="updateOverlay.visible" class="update-overlay" aria-live="assertive">
+      <div class="update-overlay-card"><p class="update-overlay-title">{{ t('updating') }}</p><p class="update-overlay-message">{{ updateOverlay.message }}</p></div>
     </div>
 
     <header class="app-topbar">
       <div class="app-topbar-brand"><span class="app-topbar-eyebrow">Local Mock</span></div>
-      <div class="app-topbar-context"><p class="app-topbar-page-eyebrow">Mocks</p><h1 class="app-topbar-page-title">Endpoint configuration</h1><p class="app-topbar-page-subtitle">Create, test, and manage mocked responses by collection or as standalone mocks.</p></div>
+      <div class="app-topbar-context"><p class="app-topbar-page-eyebrow">{{ t('mocks') }}</p><h1 class="app-topbar-page-title">{{ t('endpointConfiguration') }}</h1><p class="app-topbar-page-subtitle">{{ t('endpointDescription') }}</p></div>
       <div class="app-topbar-actions">
-        <button class="button button-secondary button-small" type="button" @click="importFile?.click()">Import JSON</button>
-        <button class="button button-secondary button-small" type="button" @click="exportMocks">Export JSON</button>
-        <button class="button button-secondary button-small" type="button" @click="refresh">Refresh list</button>
-        <span class="app-version-label" title="Installed version">{{ appVersion }}</span>
-        <button class="icon-button" type="button" :disabled="checkingUpdate" title="Check for a new version" aria-label="Check for a new version" @click="checkUpdate">↻</button>
-        <button v-if="updateAvailable" class="button button-primary button-small" type="button" title="Apply the update" @click="applyUpdate">Update</button>
-        <button class="icon-button" type="button" :title="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'" aria-label="Toggle theme" @click="applyTheme(theme === 'dark' ? 'light' : 'dark')">◐</button>
+        <button class="button button-secondary button-small mobile-endpoints-toggle" type="button" :aria-expanded="mobileSidebarOpen" @click="mobileSidebarOpen = !mobileSidebarOpen">{{ t('endpoints') }}</button>
+        <button class="button button-secondary button-small" type="button" @click="transfer.openImport">{{ t('importJson') }}</button>
+        <button class="button button-secondary button-small" type="button" @click="transfer.openExport">{{ t('exportJson') }}</button>
+        <span class="app-version-label" :title="t('installedVersion')">{{ appVersion }}</span>
+        <button class="icon-button" type="button" :disabled="checkingUpdate" :title="t('checkForUpdates')" :aria-label="t('checkForUpdates')" @click="updates.check">↻</button>
+        <button v-if="updateAvailable" class="button button-primary button-small" type="button" :title="t('applyUpdate')" @click="updates.apply">{{ t('applyUpdate') }}</button>
+        <label class="locale-picker"><span>{{ t('language') }}</span><select :value="locale" :aria-label="t('language')" @change="setLocale($event.target.value)"><option value="pt-BR">{{ t('languagePortuguese') }}</option><option value="en">{{ t('languageEnglish') }}</option></select></label>
+        <button class="icon-button" type="button" :title="t('toggleTheme')" :aria-label="t('toggleTheme')" @click="applyTheme(theme === 'dark' ? 'light' : 'dark')">◐</button>
       </div>
     </header>
 
     <div class="app-content">
       <div id="screen-mocks" class="app-screen is-active" role="tabpanel">
         <CollectionTree
+          :class="{ 'is-mobile-open': mobileSidebarOpen }"
           :mocks="mocks" :collections="collections" :expanded-ids="expandedIds" :active-collection="activeCollection"
           :editing-key="editingKey" :search="search" :method-filter="methodFilter" :status-filter="statusFilter"
           :feedback="listFeedback" :feedback-error="listFeedbackError"
           @update:search="search = $event" @update:method-filter="methodFilter = $event" @update:status-filter="statusFilter = $event"
-          @new-mock="resetMockForm" @new-collection="openNewCollection" @toggle-group="toggleGroup" @activate-collection="activateCollection"
+          @new-mock="resetMockForm" @new-collection="openNewCollection" @toggle-group="toggleGroup" @activate-collection="activateCollection($event); mobileSidebarOpen = false"
           @edit-collection="openCollection" @select-mock="fillMock" @test-mock="useMockForTest"
           @toggle-mock="toggleEnabled($event, !$event.enabled)" @toggle-bypass="toggleBypass" @duplicate-mock="duplicateMock" @delete-mock="deleteMock"
         />
         <div class="app-main">
           <main class="workspace">
             <header class="workspace-heading">
-              <div><p class="workspace-breadcrumb">{{ form.collection ? `Collections / ${form.collection}` : 'Mocks / No collection' }}</p><h1>{{ endpointTitle }}</h1><span class="save-state" :class="{ 'save-state--saved': editingKey && !dirty }">{{ editingKey ? (dirty ? 'Unsaved changes' : 'Saved') : 'New endpoint' }}</span></div>
-              <div v-if="activeTab === 'configure'" class="workspace-heading-actions"><button class="button button-primary" type="submit" form="mock-form" :disabled="savingMock">{{ savingMock ? 'Saving…' : 'Save mock' }}</button></div>
+              <div><p class="workspace-breadcrumb">{{ form.collection ? `${t('collections')} / ${form.collection}` : `${t('mocks')} / ${t('noCollection')}` }}</p><h1>{{ endpointTitle }}</h1><span class="save-state" :class="{ 'save-state--saved': editingKey && !dirty }">{{ editingKey ? (dirty ? t('unsavedChanges') : t('saved')) : t('newEndpoint') }}</span></div>
             </header>
             <nav class="mock-view-tabs" role="tablist" aria-label="Endpoint workspace">
-              <button class="mock-view-tab" :class="{ 'is-active': activeTab === 'configure' }" type="button" role="tab" :aria-selected="activeTab === 'configure'" @click="activeTab = 'configure'">Configure</button>
-              <button class="mock-view-tab" :class="{ 'is-active': activeTab === 'test' }" type="button" role="tab" :aria-selected="activeTab === 'test'" @click="activeTab = 'test'">Test</button>
+              <button class="mock-view-tab" :class="{ 'is-active': activeTab === 'configure' }" type="button" role="tab" :aria-selected="activeTab === 'configure'" @click="activeTab = 'configure'">{{ t('configure') }}</button>
+              <button class="mock-view-tab" :class="{ 'is-active': activeTab === 'test' }" type="button" role="tab" :aria-selected="activeTab === 'test'" @click="activeTab = 'test'">{{ t('test') }}</button>
             </nav>
             <div class="workspace-panels">
               <MockEditor v-if="activeTab === 'configure'" :form="form" :dirty="dirty" :saving="savingMock" :enabled-busy="enabledBusy" :feedback="mockFeedback" :feedback-error="mockFeedbackError" @save="saveMock" @reset="resetMockForm" @dirty="dirty = true" @toggle-enabled="onFormEnabled" @copy="copyText" />
@@ -644,6 +487,7 @@ onMounted(() => {
 
     <CurlImportModal v-model:command="curlCommand" :open="curlOpen" :error="curlError" @close="curlOpen = false" @apply="applyCurlImport" />
     <div class="toast-container" aria-live="polite" aria-atomic="true"><div v-for="item in toasts" :key="item.id" class="toast" :class="item.error ? 'toast--error' : 'toast--success'"><span class="toast-message">{{ item.message }}</span></div></div>
-    <input ref="importFile" type="file" accept=".json,application/json" hidden @change="importMocks">
+    <ImportExportDialog :open="transferOpen" :mode="transferMode" :collections="transferCollections" :mocks="transferMocks" :current-collections="collections" :current-mocks="mocks" :working="transferWorking" :error="transferError" @close="transfer.close" @confirm="transfer.confirm" />
+    <input ref="importFile" type="file" accept=".json,application/json" hidden @change="transfer.readFile">
   </div>
 </template>

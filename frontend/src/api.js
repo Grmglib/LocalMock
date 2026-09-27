@@ -1,7 +1,9 @@
 async function request(url, options) {
   const response = await fetch(url, options)
   if (!response.ok) {
-    const message = (await response.text()).trim()
+    const text = (await response.text()).trim()
+    let message = text
+    try { message = JSON.parse(text).message || text } catch { /* Keep plain-text API errors readable. */ }
     throw new Error(message || `${response.status} ${response.statusText}`)
   }
   return response
@@ -21,6 +23,9 @@ export const api = {
   },
   saveMock(value) {
     return request('/mock', { method: 'POST', ...json(value) })
+  },
+  importBatch(value) {
+    return request('/mock/import', { method: 'POST', ...json(value) }).then((response) => response.json())
   },
   removeMock(entry) {
     const params = new URLSearchParams({ method: entry.method, path: entry.path })

@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { collectionId, entryKey, normalizeEntry } from '../domain.js'
+import { useLocale } from '../useLocale.js'
+const { t } = useLocale()
 
 const props = defineProps({
   mocks: { type: Array, default: () => [] },
@@ -59,8 +61,8 @@ function statusClass(code) {
 }
 
 function statusLabel(code) {
-  const labels = { 200: 'OK', 201: 'Created', 202: 'Accepted', 204: 'No Content', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 409: 'Conflict', 422: 'Unprocessable Entity', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable' }
-  return labels[code] ? `${code} ${labels[code]}` : String(code)
+  const labels = { 200: 'statusOk', 201: 'statusCreated', 202: 'statusAccepted', 204: 'statusNoContent', 400: 'statusBadRequest', 401: 'statusUnauthorized', 403: 'statusForbidden', 404: 'statusNotFound', 409: 'statusConflict', 422: 'statusUnprocessable', 500: 'statusInternalError', 502: 'statusBadGateway', 503: 'statusUnavailable' }
+  return labels[code] ? `${code} ${t(labels[code])}` : String(code)
 }
 </script>
 
@@ -68,25 +70,25 @@ function statusLabel(code) {
   <aside class="mocks-sidebar" aria-labelledby="mocks-sidebar-title">
     <div class="mocks-sidebar-header">
       <div>
-        <h2 id="mocks-sidebar-title" class="mocks-sidebar-title">Endpoints</h2>
-        <p class="mocks-sidebar-subtitle">Select an endpoint to edit or test</p>
+      <h2 id="mocks-sidebar-title" class="mocks-sidebar-title">{{ t('endpoints') }}</h2>
+        <p class="mocks-sidebar-subtitle">{{ t('selectEndpoint') }}</p>
       </div>
-      <button class="button button-primary button-small" type="button" title="New endpoint" aria-label="New endpoint" @click="emit('new-mock')">+</button>
+      <button class="button button-primary button-small" type="button" :title="t('newEndpoint')" :aria-label="t('newEndpoint')" @click="emit('new-mock')">+</button>
     </div>
 
     <div class="collection-tree-heading">
-      <span>Collections</span>
-      <button class="icon-button" type="button" title="New collection" aria-label="New collection" @click="emit('new-collection')">+</button>
+      <span>{{ t('collections') }}</span>
+      <button class="icon-button" type="button" :title="t('newCollection')" :aria-label="t('newCollection')" @click="emit('new-collection')">+</button>
     </div>
 
     <div class="mocks-sidebar-toolbar">
-      <input :value="search" type="search" class="sidebar-search" placeholder="Search path..." aria-label="Search mocks" @input="emit('update:search', $event.target.value)">
+      <input :value="search" type="search" class="sidebar-search" :placeholder="t('searchPath')" :aria-label="t('searchMocks')" @input="emit('update:search', $event.target.value)">
       <div class="sidebar-filters">
         <select :value="methodFilter" class="sidebar-filter" aria-label="Filter by method" @change="emit('update:methodFilter', $event.target.value)">
-          <option value="">Method</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+          <option value="">{{ t('method') }}</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
         </select>
         <select :value="statusFilter" class="sidebar-filter" aria-label="Filter by status" @change="emit('update:statusFilter', $event.target.value)">
-          <option value="">Status</option><option value="2xx">2xx</option><option value="3xx">3xx</option><option value="4xx">4xx</option><option value="5xx">5xx</option>
+          <option value="">{{ t('status') }}</option><option value="2xx">2xx</option><option value="3xx">3xx</option><option value="4xx">4xx</option><option value="5xx">5xx</option>
         </select>
       </div>
     </div>
@@ -94,12 +96,12 @@ function statusLabel(code) {
     <div class="mock-list" role="list" aria-live="polite">
       <section v-for="group in groups" :key="group.id || '__none__'" class="collection-tree-group" :class="{ 'is-current': activeCollection === group.id, 'is-collapsed': !expandedIds.has(group.id) }">
         <div class="collection-tree-header">
-          <button class="collection-tree-toggle" type="button" :aria-label="`${expandedIds.has(group.id) ? 'Collapse' : 'Expand'} ${group.label}`" :aria-expanded="expandedIds.has(group.id)" @click="emit('toggle-group', group.id)"></button>
+          <button class="collection-tree-toggle" type="button" :aria-label="`${expandedIds.has(group.id) ? t('collapse') : t('expand')} ${group.label}`" :aria-expanded="expandedIds.has(group.id)" @click="emit('toggle-group', group.id)"></button>
           <button class="collection-tree-select" :class="{ 'is-current': activeCollection === group.id }" type="button" @click="emit('activate-collection', group.id)">
-            <span class="collection-tree-name">{{ group.label }}</span><span class="collection-tree-count">{{ group.count }}</span>
+            <span class="collection-tree-name">{{ group.label || t('noCollection') }}</span><span class="collection-tree-count">{{ group.count }}</span>
           </button>
-          <button class="icon-button collection-tree-add" type="button" :title="`New endpoint in ${group.label}`" :aria-label="`New endpoint in ${group.label}`" @click="emit('new-mock', group.id)">+</button>
-          <button v-if="group.collection" class="icon-button collection-tree-settings" type="button" title="Configure collection bypass" :aria-label="`Configure ${group.label}`" @click="emit('edit-collection', group.collection)">⚙</button>
+          <button class="icon-button collection-tree-add" type="button" :title="`${t('newEndpoint')} · ${group.label || t('noCollection')}`" :aria-label="`${t('newEndpoint')} · ${group.label || t('noCollection')}`" @click="emit('new-mock', group.id)">+</button>
+          <button v-if="group.collection" class="icon-button collection-tree-settings" type="button" :title="t('configureCollection')" :aria-label="`${t('configureCollection')} · ${group.label}`" @click="emit('edit-collection', group.collection)">⚙</button>
         </div>
 
         <div class="collection-tree-items">
@@ -110,23 +112,28 @@ function statusLabel(code) {
             </div>
             <div class="mock-list-item-meta">
               <span class="status-badge" :class="statusClass(normalizeEntry(raw).statusCode)">{{ statusLabel(normalizeEntry(raw).statusCode) }}</span>
-              <span v-if="normalizeEntry(raw).bypassEnabled" class="bypass-pill bypass-pill--yes">Bypass</span>
-              <span v-if="normalizeEntry(raw).collection && !normalizeEntry(raw).enabled" class="bypass-pill bypass-pill--inactive">Inactive</span>
+              <span v-if="normalizeEntry(raw).bypassEnabled" class="bypass-pill bypass-pill--yes">{{ t('bypassOrigin') }}</span>
+              <span v-if="normalizeEntry(raw).collection && !normalizeEntry(raw).enabled" class="bypass-pill bypass-pill--inactive">{{ t('inactive') }}</span>
             </div>
             <div class="mock-list-item-actions" @click.stop>
-              <button class="icon-button" type="button" title="Test" aria-label="Test" @click="emit('test-mock', normalizeEntry(raw))">▶</button>
-              <button v-if="normalizeEntry(raw).collection" class="icon-button" :class="normalizeEntry(raw).enabled ? 'is-mock-on' : 'is-mock-off'" type="button" :title="normalizeEntry(raw).enabled ? 'Disable mock' : 'Enable mock'" :aria-label="normalizeEntry(raw).enabled ? 'Disable mock' : 'Enable mock'" @click="emit('toggle-mock', normalizeEntry(raw))">◉</button>
-              <button v-else class="icon-button" :class="{ 'is-bypass-on': normalizeEntry(raw).bypassEnabled }" type="button" :title="normalizeEntry(raw).bypassEnabled ? 'Disable bypass' : 'Enable bypass'" :aria-label="normalizeEntry(raw).bypassEnabled ? 'Disable bypass' : 'Enable bypass'" @click="emit('toggle-bypass', normalizeEntry(raw))">⇄</button>
-              <button class="icon-button" type="button" title="Edit" aria-label="Edit" @click="emit('select-mock', normalizeEntry(raw))">✎</button>
-              <button class="icon-button" type="button" title="Duplicate" aria-label="Duplicate" @click="emit('duplicate-mock', normalizeEntry(raw))">⧉</button>
-              <button class="icon-button icon-button--danger" type="button" title="Delete" aria-label="Delete" @click="emit('delete-mock', normalizeEntry(raw))">✕</button>
+              <button class="icon-button endpoint-action" type="button" :title="t('test')" :aria-label="t('test')" @click="emit('test-mock', normalizeEntry(raw))">▶</button>
+              <button class="icon-button endpoint-action" type="button" :title="t('edit')" :aria-label="t('edit')" @click="emit('select-mock', normalizeEntry(raw))">✎</button>
+              <details class="mock-actions-menu">
+                <summary class="icon-button" :aria-label="t('actions')" :title="t('actions')">⋯</summary>
+                <div class="mock-actions-popover">
+                  <button v-if="normalizeEntry(raw).collection" type="button" @click="emit('toggle-mock', normalizeEntry(raw)); $event.currentTarget.closest('details').open = false">{{ normalizeEntry(raw).enabled ? t('disableMock') : t('enableMock') }}</button>
+                  <button v-else type="button" @click="emit('toggle-bypass', normalizeEntry(raw)); $event.currentTarget.closest('details').open = false">{{ normalizeEntry(raw).bypassEnabled ? t('disableBypass') : t('enableBypass') }}</button>
+                  <button type="button" @click="emit('duplicate-mock', normalizeEntry(raw)); $event.currentTarget.closest('details').open = false">{{ t('duplicate') }}</button>
+                  <button class="is-danger" type="button" @click="emit('delete-mock', normalizeEntry(raw)); $event.currentTarget.closest('details').open = false">{{ t('delete') }}</button>
+                </div>
+              </details>
             </div>
           </article>
-          <p v-if="!group.entries.length && group.count === 0" class="collection-tree-empty">No endpoints</p>
+          <p v-if="!group.entries.length && group.count === 0" class="collection-tree-empty">{{ t('noEndpoints') }}</p>
         </div>
       </section>
       <p v-if="feedback" class="sidebar-feedback" :class="{ 'feedback--error': feedbackError }" aria-live="polite">{{ feedback }}</p>
-      <p v-if="mocks.length && groups.every((group) => !group.entries.length)" class="mock-list-empty">No endpoints match these filters.</p>
+      <p v-if="mocks.length && groups.every((group) => !group.entries.length)" class="mock-list-empty">{{ t('noMatches') }}</p>
     </div>
   </aside>
 </template>

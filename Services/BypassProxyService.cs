@@ -202,5 +202,15 @@ public class BypassProxyService : IBypassProxyService, IDisposable
             proxyRequest.RequestUri = _destinationUri;
             proxyRequest.Headers.Host = null;
         }
+
+        public override async ValueTask<bool> TransformResponseAsync(
+            HttpContext httpContext,
+            HttpResponseMessage? proxyResponse,
+            CancellationToken cancellationToken)
+        {
+            var shouldProxy = await base.TransformResponseAsync(httpContext, proxyResponse, cancellationToken);
+            httpContext.Response.Headers["X-LocalMock-Source"] = "bypass";
+            return shouldProxy;
+        }
     }
 }

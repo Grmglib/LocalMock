@@ -33,7 +33,7 @@ public class VersionController : ControllerBase
     [SwaggerOperation(
         Summary = "Version status",
         Description = "Compares the installed version with the latest GitHub release",
-        OperationId = "GetVersionStatus",
+        OperationId = "GetVersionStatus",   
         Tags = new[] { "Version" })]
     [SwaggerResponse(200, "Status retrieved")]
     public async Task<ActionResult<VersionStatusResponse>> GetVersion(CancellationToken cancellationToken)
