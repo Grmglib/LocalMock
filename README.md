@@ -6,15 +6,19 @@ LocalMock is a local HTTP mock server built with ASP.NET Core 8. It lets you def
 
 - Windows x64 with the .NET 8 Desktop Runtime and ASP.NET Core Runtime to run the published app
 - .NET 8 SDK to build and run from source
+- Node.js 20.19+ (or 22.12+) and pnpm to build the Vue manager
 - PowerShell 5.1 or later for automatic updates
 
 ## Quick start
 
 ```powershell
+.\scripts\build-ui.ps1
 dotnet run --project LocalMock.csproj
 ```
 
-The server listens on `http://localhost:5183` by default and opens the [mock manager](http://localhost:5183/ui/) in your browser. Closing the browser tab leaves LocalMock running; use **Exit** in the Windows tray to stop it. The [Swagger UI](http://localhost:5183/swagger) remains available.
+The server listens on `http://localhost:5183` by default and opens the Vue manager at [http://localhost:5183/ui/](http://localhost:5183/ui/). The .NET build serves the static Vue files directly and does not build the frontend. Closing the browser tab leaves LocalMock running; use **Exit** in the Windows tray to stop it. The [Swagger UI](http://localhost:5183/swagger) remains available.
+
+Vue is the only manager. Run `.\scripts\build-ui.ps1` to generate it at `/ui/`, or run `pnpm --dir frontend run dev` and open the Vite URL for development. Its dev server proxies `/mock` and `/api` requests to LocalMock. The publish script builds Vue before packaging; the .NET build itself still does not build Vue.
 
 Create and call a standalone mock:
 
@@ -98,6 +102,6 @@ Mocks and collections are saved together in `%LocalAppData%\LocalMock\mocks.json
 
 Download `LocalMock-win-x64.zip`, extract it into a folder you can write to, and run `LocalMock.exe`. Keep the files from the ZIP together. No administrator rights or service registration are needed. Running the EXE again opens the existing instance's manager page.
 
-To build the same ZIP from source, run `.\scripts\publish.ps1`. It creates `artifacts\publish` and `artifacts\LocalMock-win-x64.zip` using a framework-dependent publication.
+To build the same ZIP from source, run `.\scripts\publish.ps1`. It publishes the backend and packages the static files currently present under `wwwroot` into `artifacts\publish` and `artifacts\LocalMock-win-x64.zip` using a framework-dependent publication. It builds Vue and packages the Vue manager. Run `.\scripts\smoke-test.ps1` to check the published manager and a mock request.
 
 The UI checks GitHub Releases when opened and when you click the check button. If a newer release contains `LocalMock-win-x64.zip`, an **Update** button appears beside it. Applying the update replaces the extracted application files, then restarts LocalMock in the tray. The open page reloads when the new version is ready. Update logs are written to `%TEMP%\LocalMock-update.log`.

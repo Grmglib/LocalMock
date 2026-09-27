@@ -11,6 +11,11 @@ $zipPath = Join-Path $repoRoot "artifacts\LocalMock-win-x64.zip"
 
 Write-Host "Publishing LocalMock ($Configuration, win-x64, framework-dependent)..."
 
+& (Join-Path $PSScriptRoot "build-ui.ps1")
+if ($LASTEXITCODE -ne 0) {
+    throw "Vue interface build failed."
+}
+
 if (Test-Path $publishDir) {
     Remove-Item $publishDir -Recurse -Force
 }

@@ -45,6 +45,22 @@ try {
         throw "LocalMock did not serve its web UI."
     }
 
+    $html = (Invoke-WebRequest -Uri "http://localhost:$port/ui/" -UseBasicParsing).Content
+    if ($html -notmatch 'src="\./assets/index-[^"]+\.js"' -or $html -notmatch 'href="\./assets/index-[^"]+\.css"') {
+        throw "The Vue manager bundles were not served from /ui/."
+    }
+    $assets = [regex]::Matches($html, '(?:src|href)="([^\"]+\.(?:js|css)(?:\?[^\"]*)?)"')
+    if ($assets.Count -lt 2) {
+        throw "The static manager did not include its JavaScript and CSS files."
+    }
+    foreach ($asset in $assets) {
+        $assetUrl = [Uri]::new([Uri]"http://localhost:$port/ui/", $asset.Groups[1].Value)
+        $assetResponse = Invoke-WebRequest -Uri $assetUrl -UseBasicParsing
+        if ($assetResponse.StatusCode -ne 200) {
+            throw "The interface asset was not served: $($asset.Groups[1].Value)"
+        }
+    }
+
     $version = Invoke-RestMethod -Uri "http://localhost:$port/api/version/current"
     if (-not ($version.currentVersion -or $version.CurrentVersion)) {
         throw "LocalMock did not report its current version."
