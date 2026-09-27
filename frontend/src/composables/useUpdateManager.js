@@ -2,17 +2,23 @@ import { reactive, ref } from 'vue'
 
 export function useUpdateManager({ api, t, toast }) {
   const appVersion = ref('v…')
+  const latestVersion = ref('')
   const updateAvailable = ref(false)
   const checking = ref(false)
   const overlay = reactive({ visible: false, message: '' })
 
-  async function check() {
+  async function check({ notifyWhenCurrent = false } = {}) {
     checking.value = true
     try {
       const status = await api.version()
-      appVersion.value = `v${status.currentVersion ?? status.CurrentVersion ?? '…'}`
+      const current = status.currentVersion ?? status.CurrentVersion
+      const latest = status.latestVersion ?? status.LatestVersion
+      appVersion.value = current ? `v${String(current).replace(/^v/i, '')}` : 'v…'
+      latestVersion.value = latest ? `v${String(latest).replace(/^v/i, '')}` : ''
       updateAvailable.value = Boolean(status.updateAvailable ?? status.UpdateAvailable)
-      if (status.error ?? status.Error) toast(t('updateCheckFailed', { message: status.error ?? status.Error }), true)
+      const errorMessage = status.error ?? status.Error
+      if (errorMessage) toast(t('updateCheckFailed', { message: errorMessage }), true)
+      else if (notifyWhenCurrent && !updateAvailable.value) toast(t('alreadyLatestVersion', { version: latestVersion.value || appVersion.value }))
     } catch (error) {
       try {
         const version = await api.currentVersion()
@@ -50,5 +56,5 @@ export function useUpdateManager({ api, t, toast }) {
     }
   }
 
-  return { appVersion, updateAvailable, checking, overlay, check, apply }
+  return { appVersion, latestVersion, updateAvailable, checking, overlay, check, apply }
 }

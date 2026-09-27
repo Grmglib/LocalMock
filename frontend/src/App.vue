@@ -59,7 +59,7 @@ const curlCommand = ref('')
 const curlError = ref('')
 const toasts = ref([])
 const updates = useUpdateManager({ api, t, toast })
-const { appVersion, updateAvailable, checking: checkingUpdate, overlay: updateOverlay } = updates
+const { appVersion, latestVersion, updateAvailable, checking: checkingUpdate, overlay: updateOverlay } = updates
 const transfer = useImportExport({ api, currentMocks: mocks, currentCollections: collections, refresh, toast, t })
 const { open: transferOpen, mode: transferMode, collections: transferCollections, mocks: transferMocks, working: transferWorking, error: transferError, fileInput: importFile } = transfer
 
@@ -440,8 +440,8 @@ onMounted(() => {
         <button class="button button-secondary button-small" type="button" @click="transfer.openImport">{{ t('importJson') }}</button>
         <button class="button button-secondary button-small" type="button" @click="transfer.openExport">{{ t('exportJson') }}</button>
         <span class="app-version-label" :title="t('installedVersion')">{{ appVersion }}</span>
-        <button class="icon-button" type="button" :disabled="checkingUpdate" :title="t('checkForUpdates')" :aria-label="t('checkForUpdates')" @click="updates.check">↻</button>
-        <button v-if="updateAvailable" class="button button-primary button-small" type="button" :title="t('applyUpdate')" @click="updates.apply">{{ t('applyUpdate') }}</button>
+        <button class="icon-button" type="button" :disabled="checkingUpdate" :title="t('checkForUpdates')" :aria-label="t('checkForUpdates')" @click="updates.check({ notifyWhenCurrent: true })">↻</button>
+        <button v-if="updateAvailable" class="button button-primary button-small" type="button" :title="t('applyUpdateVersion', { version: latestVersion })" @click="updates.apply">{{ t('applyUpdateVersion', { version: latestVersion }) }}</button>
         <label class="locale-picker"><span>{{ t('language') }}</span><select :value="locale" :aria-label="t('language')" @change="setLocale($event.target.value)"><option value="pt-BR">{{ t('languagePortuguese') }}</option><option value="en">{{ t('languageEnglish') }}</option></select></label>
         <button class="icon-button" type="button" :title="t('toggleTheme')" :aria-label="t('toggleTheme')" @click="applyTheme(theme === 'dark' ? 'light' : 'dark')">◐</button>
       </div>
@@ -486,7 +486,7 @@ onMounted(() => {
     </div>
 
     <CurlImportModal v-model:command="curlCommand" :open="curlOpen" :error="curlError" @close="curlOpen = false" @apply="applyCurlImport" />
-    <div class="toast-container" aria-live="polite" aria-atomic="true"><div v-for="item in toasts" :key="item.id" class="toast" :class="item.error ? 'toast--error' : 'toast--success'"><span class="toast-message">{{ item.message }}</span></div></div>
+    <div class="toast-container" aria-live="polite" aria-atomic="true"><div v-for="item in toasts" :key="item.id" class="toast is-visible" :class="item.error ? 'toast-error' : 'toast-success'"><span class="toast-message">{{ item.message }}</span></div></div>
     <ImportExportDialog :open="transferOpen" :mode="transferMode" :collections="transferCollections" :mocks="transferMocks" :current-collections="collections" :current-mocks="mocks" :working="transferWorking" :error="transferError" @close="transfer.close" @confirm="transfer.confirm" />
     <input ref="importFile" type="file" accept=".json,application/json" hidden @change="transfer.readFile">
   </div>
