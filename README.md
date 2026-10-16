@@ -1,11 +1,11 @@
 # LocalMock
 
-LocalMock is a local HTTP mock server built with ASP.NET Core 8. It lets you define responses by HTTP method and path, organize them into collections, and forward requests to an upstream service when a collection has no active mock. It includes a browser-based manager and Swagger documentation.
+LocalMock is a local HTTP mock server built with ASP.NET Core 10. It lets you define responses by HTTP method and path, organize them into collections, and forward requests to an upstream service when a collection has no active mock. It includes a browser-based manager and Swagger documentation.
 
 ## Requirements
 
-- Windows x64 with the .NET 8 Desktop Runtime and ASP.NET Core Runtime to run the published app
-- .NET 8 SDK to build and run from source
+- Windows x64 with the .NET 10 Desktop Runtime and ASP.NET Core Runtime to run the published app
+- .NET 10 SDK to build and run from source
 - Node.js 20.19+ (or 22.12+) and pnpm to build the Vue manager
 - PowerShell 5.1 or later for automatic updates
 
