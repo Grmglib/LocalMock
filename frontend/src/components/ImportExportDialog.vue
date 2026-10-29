@@ -111,7 +111,11 @@ function collectionStatus(collection) {
 function mockStatus(mock) { return invalid(mock) ? t('invalidItem') : props.mode === 'import' && currentMock(mock) ? t('conflictItem') : props.mode === 'export' ? t('includedItem') : t('newItem') }
 
 function submit() {
-  const selectedMocksList = props.mocks.filter((item) => selectedMocks.value.has(entryKey(item)) && !invalid(item) && (!currentMock(item) || replaceMocks.value.has(entryKey(item))))
+  const selectedMocksList = props.mocks.filter((item) => {
+    if (!selectedMocks.value.has(entryKey(item)) || invalid(item)) return false
+    if (props.mode === 'export') return true
+    return !currentMock(item) || replaceMocks.value.has(entryKey(item))
+  })
   const requiredIds = new Set(selectedMocksList.map((item) => normalizeEntry(item).collection).filter(Boolean))
   const collectionsList = props.collections.filter((item) => {
     const id = idOf(item)

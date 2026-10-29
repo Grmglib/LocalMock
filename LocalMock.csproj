@@ -8,8 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <Version>0.7.0</Version>
-    <InformationalVersion>0.7.0</InformationalVersion>
+    <Version>0.7.1</Version>
+    <InformationalVersion>0.7.1</InformationalVersion>
     <AssemblyTitle>LocalMock</AssemblyTitle>
     <Product>LocalMock</Product>
   </PropertyGroup>
